@@ -1,0 +1,11 @@
+// From CORBASEC V 1.5
+// $Id$
+#pragma prefix "omg.org"
+
+module Security {
+    // Association options which can be administered
+    // on secure invocation policy and used to
+    // initialize security context
+
+    typedef unsigned short AssociationOptions;
+};

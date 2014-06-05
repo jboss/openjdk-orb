@@ -35,12 +35,36 @@
 
 module CORBA{
 
-    valuetype StringValue string;
-    valuetype WStringValue wstring;
+	valuetype StringValue string;
+	valuetype WStringValue wstring;
 
+	typedef sequence<octet> OctetSeq;
+
+	typedef long PolicyType;
+
+	typedef unsigned short ServiceType;
+	typedef unsigned long  ServiceOption;
+	typedef unsigned long  ServiceDetailType;
+	typedef CORBA::OctetSeq ServiceDetailData;
+	typedef sequence<ServiceOption> ServiceOptionSeq;
+
+	const ServiceType Security = 1;
+
+	struct ServiceDetail {
+		ServiceDetailType service_detail_type;
+		ServiceDetailData service_detail;
+	};
+
+	typedef sequence<ServiceDetail> ServiceDetailSeq;
+
+	struct ServiceInformation {
+		ServiceOptionSeq service_options;
+		ServiceDetailSeq  service_details;
+	};
+
+	typedef string Identifier;
 };
 
-#include "ir.idl"
 
 #pragma prefix ""
 
