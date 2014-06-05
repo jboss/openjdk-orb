@@ -1,0 +1,15 @@
+#pragma prefix "omg.org"
+#include <IOP.idl>
+#include <Security.idl>
+
+module SSLIOP {
+
+    // Security mechanism SSL
+    const IOP::ComponentId        TAG_SSL_SEC_TRANS = 20;
+
+    struct SSL {
+        Security::AssociationOptions    target_supports;
+        Security::AssociationOptions    target_requires;
+        unsigned short        port;
+    };
+};
