@@ -30,7 +30,7 @@
 #define _DYNAMIC_ANY_IDL_
 
 #pragma prefix "omg.org"
-#include <orb.idl>
+#include <ir.idl>
 
 /**
 * An any can be passed to a program that doesn't have any static information for the
