@@ -72,7 +72,7 @@ public interface PortableRemoteObjectDelegate {
      * Delegation call for {@link javax.rmi.PortableRemoteObject#narrow}.
      */
     java.lang.Object narrow (java.lang.Object narrowFrom,
-                                    java.lang.Class narrowTo)
+                                    java.lang.Class<?> narrowTo)
         throws ClassCastException;
 
     /**
