@@ -749,10 +749,10 @@ public final class Utility {
     /*
      * Load an RMI-IIOP Stub.  This is used in PortableRemoteObject.narrow.
      */
-    public static Remote loadStub (org.omg.CORBA.Object narrowFrom,
-                                   Class narrowTo)
+    public static Object loadStub (org.omg.CORBA.Object narrowFrom,
+                                   Class<?> narrowTo)
     {
-        Remote result = null;
+        Object result = null;
 
         try {
             // Get the codebase from the delegate to use when loading
@@ -775,7 +775,7 @@ public final class Utility {
             PresentationManager.StubFactory sf = sff.createStubFactory(
                 narrowTo.getName(), false, codebase, narrowTo,
                 narrowTo.getClassLoader() ) ;
-            result = (Remote)sf.makeStub() ;
+            result = sf.makeStub() ;
             StubAdapter.setDelegate( result,
                 StubAdapter.getDelegate( narrowFrom ) ) ;
         } catch (Exception err) {
