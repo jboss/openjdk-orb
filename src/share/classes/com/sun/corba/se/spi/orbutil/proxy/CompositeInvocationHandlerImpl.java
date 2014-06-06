@@ -26,13 +26,13 @@
 package com.sun.corba.se.spi.orbutil.proxy ;
 
 import java.io.Serializable ;
-
 import java.util.Map ;
 import java.util.LinkedHashMap ;
-
 import java.lang.reflect.Proxy ;
 import java.lang.reflect.Method ;
 import java.lang.reflect.InvocationHandler ;
+
+import javax.rmi.PortableRemoteObject;
 
 import com.sun.corba.se.spi.logging.CORBALogDomains ;
 import com.sun.corba.se.impl.logging.ORBUtilSystemException ;
@@ -79,7 +79,15 @@ public class CompositeInvocationHandlerImpl implements
 
         // handler should never be null here.
 
-        return handler.invoke( proxy, method, args ) ;
+        Object result = handler.invoke(proxy, method, args);
+        final Class<?> returnType = method.getReturnType();
+        if(result == null) {
+                return result;
+        } else if(returnType.isPrimitive() || returnType.isAssignableFrom(result.getClass())) {
+                return result;
+        } else {
+                return PortableRemoteObject.narrow(result, returnType);
+        }
     }
 
     private static final DynamicAccessPermission perm = new DynamicAccessPermission("access");
