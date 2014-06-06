@@ -31,21 +31,18 @@
 
 package javax.rmi;
 
-import java.lang.reflect.Method ;
-
-import org.omg.CORBA.INITIALIZE;
-import javax.rmi.CORBA.Util;
-
-import java.rmi.RemoteException;
-import java.rmi.NoSuchObjectException;
-import java.rmi.Remote;
 import java.io.File;
 import java.io.FileInputStream;
-import java.util.Properties;
-import java.net.MalformedURLException ;
+import java.net.MalformedURLException;
+import java.rmi.NoSuchObjectException;
+import java.rmi.Remote;
+import java.rmi.RemoteException;
+import java.rmi.server.RMIClassLoader;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
-import java.rmi.server.RMIClassLoader;
+import java.util.Properties;
+
+import org.omg.CORBA.INITIALIZE;
 
 import com.sun.corba.se.impl.orbutil.GetPropertyAction;
 
@@ -143,7 +140,7 @@ public class PortableRemoteObject {
      * @throws ClassCastException if narrowFrom cannot be cast to narrowTo.
      */
     public static java.lang.Object narrow ( java.lang.Object narrowFrom,
-                                            java.lang.Class narrowTo)
+                                            java.lang.Class<?> narrowTo)
         throws ClassCastException {
 
         if (proDelegate != null) {
@@ -205,17 +202,16 @@ public class PortableRemoteObject {
 
     }
 
-    private static Class loadDelegateClass( String className )  throws ClassNotFoundException
+    private static Class<?> loadDelegateClass( String className )  throws ClassNotFoundException
     {
         try {
-            ClassLoader loader = Thread.currentThread().getContextClassLoader();
-            return Class.forName(className, false, loader);
+            return Class.forName(className, false, PortableRemoteObject.class.getClassLoader());
         } catch (ClassNotFoundException e) {
             // ignore, then try RMIClassLoader
         }
 
         try {
-            return RMIClassLoader.loadClass(className);
+            return RMIClassLoader.loadClass((String)null,className);
         } catch (MalformedURLException e) {
             String msg = "Could not load " + className + ": " + e.toString();
             ClassNotFoundException exc = new ClassNotFoundException( msg ) ;
@@ -231,7 +227,7 @@ public class PortableRemoteObject {
     }
 }
 
-class GetORBPropertiesFileAction implements PrivilegedAction {
+class GetORBPropertiesFileAction implements PrivilegedAction<Properties> {
     private boolean debug = false ;
 
     public GetORBPropertiesFileAction () {
@@ -241,8 +237,8 @@ class GetORBPropertiesFileAction implements PrivilegedAction {
         // This will not throw a SecurityException because this
         // class was loaded from rt.jar using the bootstrap classloader.
         String propValue = (String) AccessController.doPrivileged(
-            new PrivilegedAction() {
-                public java.lang.Object run() {
+            new PrivilegedAction<String>() {
+                public String run() {
                     return System.getProperty(name);
                 }
             }
@@ -272,7 +268,7 @@ class GetORBPropertiesFileAction implements PrivilegedAction {
         }
     }
 
-    public Object run()
+    public Properties run()
     {
         Properties defaults = new Properties() ;
 

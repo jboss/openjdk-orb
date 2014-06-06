@@ -56,7 +56,7 @@ public interface ValueHandler {
      **/
     java.io.Serializable readValue(org.omg.CORBA.portable.InputStream in,
                                    int offset,
-                                   java.lang.Class clz,
+                                   java.lang.Class<?> clz,
                                    String repositoryID,
                                    org.omg.SendingContext.RunTime sender);
 
@@ -65,7 +65,7 @@ public interface ValueHandler {
      * @param clz a Java class.
      * @return the CORBA RepositoryId for the class.
      **/
-    java.lang.String getRMIRepositoryID(java.lang.Class clz);
+    java.lang.String getRMIRepositoryID(java.lang.Class<?> clz);
 
     /**
      * Indicates whether the given class performs custom or
@@ -74,7 +74,7 @@ public interface ValueHandler {
      * @return <code>true</code> if the class performs custom marshaling, <code>false</code>
      * if it does not.
      **/
-    boolean isCustomMarshaled(java.lang.Class clz);
+    boolean isCustomMarshaled(java.lang.Class<?> clz);
 
     /**
      * Returns the CodeBase for this ValueHandler.  This is used by

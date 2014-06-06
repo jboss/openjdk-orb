@@ -48,7 +48,7 @@ package com.sun.corba.se.impl.orbutil ;
  * @see java.security.AccessController
  */
 
-public class GetPropertyAction implements java.security.PrivilegedAction {
+public class GetPropertyAction implements java.security.PrivilegedAction<Object> {
     private String theProp;
     private String defaultVal;
 
