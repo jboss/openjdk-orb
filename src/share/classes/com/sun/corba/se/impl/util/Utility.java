@@ -632,7 +632,7 @@ public final class Utility {
                         boolean isIDLInterface = rid.isIDLType() ;
                         stubFactory = stubFactoryFactory.createStubFactory(
                             className, isIDLInterface, remoteCodebase, null,
-                            tie.getClass().getClassLoader() ) ;
+                            tie.getTarget().getClass().getClassLoader()) ;
                         stub = stubFactory.makeStub();
                         break;
                     } catch (Exception e) {
