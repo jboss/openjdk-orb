@@ -28,8 +28,6 @@
 // The Java classes are in the package org.omg.CORBA
 // See ValueType Semantics:Standard Value Box Definitions (5.3) in CORBA 2.3 spec
 
-#ifndef __org_omg_CORBA__
-#define __org_omg_CORBA__
 
 #pragma prefix "omg.org"
 
@@ -63,9 +61,15 @@ module CORBA{
 	};
 
 	typedef string Identifier;
+
+	interface Policy {
+		readonly attribute PolicyType policy_type;
+		Policy copy();
+		void destroy();
+	};
+
+	local interface Current {
+    	};
 };
 
 
-#pragma prefix ""
-
-#endif
