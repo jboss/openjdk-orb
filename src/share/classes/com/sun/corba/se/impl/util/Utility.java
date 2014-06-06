@@ -767,7 +767,7 @@ public final class Utility {
                     get_codebase(narrowFrom);
 
             } catch (ClassCastException e) {
-                wrapper.classCastExceptionInLoadStub( e ) ;
+                throw wrapper.classCastExceptionInLoadStub( e ) ;
             }
 
             PresentationManager.StubFactoryFactory sff =
@@ -779,7 +779,7 @@ public final class Utility {
             StubAdapter.setDelegate( result,
                 StubAdapter.getDelegate( narrowFrom ) ) ;
         } catch (Exception err) {
-            wrapper.exceptionInLoadStub( err ) ;
+            throw wrapper.exceptionInLoadStub( err ) ;
         }
 
         return result;
