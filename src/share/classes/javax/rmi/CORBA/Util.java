@@ -31,25 +31,18 @@
 
 package javax.rmi.CORBA;
 
+import java.net.MalformedURLException;
+import java.rmi.Remote;
 import java.rmi.RemoteException;
+import java.rmi.server.RMIClassLoader;
+import java.security.AccessController;
+import java.util.Properties;
 
-import org.omg.CORBA.ORB;
 import org.omg.CORBA.INITIALIZE;
+import org.omg.CORBA.ORB;
 import org.omg.CORBA.SystemException;
-import org.omg.CORBA.Any;
 import org.omg.CORBA.portable.InputStream;
 import org.omg.CORBA.portable.OutputStream;
-import org.omg.CORBA.portable.ObjectImpl;
-
-import javax.rmi.CORBA.Tie;
-import java.rmi.Remote;
-import java.io.File;
-import java.io.FileInputStream;
-import java.net.MalformedURLException ;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
-import java.util.Properties;
-import java.rmi.server.RMIClassLoader;
 
 import com.sun.corba.se.impl.orbutil.GetPropertyAction;
 
@@ -64,7 +57,8 @@ public class Util {
     private static final String UtilClassKey = "javax.rmi.CORBA.UtilClass";
 
     static {
-        utilDelegate = (javax.rmi.CORBA.UtilDelegate)createDelegate(UtilClassKey);
+        utilDelegate = (javax.rmi.CORBA.UtilDelegate)
+            createDelegateIfSpecified(UtilClassKey);
     }
 
     private Util(){}
@@ -207,7 +201,7 @@ Tie#deactivate}
      * @param clz the class to get a codebase for.
      * @return a space-separated list of URLs, or null.
      */
-    public static String getCodebase(java.lang.Class clz) {
+    public static String getCodebase(java.lang.Class<?> clz) {
         if (utilDelegate != null) {
             return utilDelegate.getCodebase(clz);
         }
@@ -240,7 +234,7 @@ Tie#deactivate}
      * @return the <code>Class</code> object representing the loaded class.
      * @exception ClassNotFoundException if class cannot be loaded.
      */
-    public static Class loadClass(String className,
+    public static Class<?> loadClass(String className,
                                   String remoteCodebase,
                                   ClassLoader loader)
         throws ClassNotFoundException {
@@ -335,7 +329,8 @@ Tie#deactivate}
     // are in different packages and the visibility needs to be package for
     // security reasons. If you know a better solution how to share this code
     // then remove it from PortableRemoteObject. Also in Stub.java
-    private static Object createDelegate(String classKey) {
+    private static Object createDelegateIfSpecified(String classKey)
+    {
         String className = (String)
             AccessController.doPrivileged(new GetPropertyAction(classKey));
         if (className == null) {
@@ -362,17 +357,16 @@ Tie#deactivate}
         }
     }
 
-    private static Class loadDelegateClass( String className )  throws ClassNotFoundException
+    private static Class<?> loadDelegateClass( String className )  throws ClassNotFoundException
     {
         try {
-            ClassLoader loader = Thread.currentThread().getContextClassLoader();
-            return Class.forName(className, false, loader);
+            return Class.forName(className, false, Util.class.getClassLoader());
         } catch (ClassNotFoundException e) {
             // ignore, then try RMIClassLoader
         }
 
         try {
-            return RMIClassLoader.loadClass(className);
+            return RMIClassLoader.loadClass((String)null, className);
         } catch (MalformedURLException e) {
             String msg = "Could not load " + className + ": " + e.toString();
             ClassNotFoundException exc = new ClassNotFoundException( msg ) ;
