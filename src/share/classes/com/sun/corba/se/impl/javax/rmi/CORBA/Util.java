@@ -34,18 +34,14 @@ package com.sun.corba.se.impl.javax.rmi.CORBA; // Util (sed marker, don't remove
 import java.rmi.RemoteException;
 import java.rmi.UnexpectedException;
 import java.rmi.MarshalException;
-
 import java.rmi.server.RMIClassLoader;
-
 import java.util.Hashtable;
 import java.util.Enumeration;
 import java.util.Properties;
 import java.util.Map;
 import java.util.WeakHashMap;
-
 import java.io.Serializable;
 import java.io.NotSerializableException;
-
 import java.lang.reflect.Constructor;
 
 import javax.rmi.CORBA.ValueHandler;
@@ -53,7 +49,6 @@ import javax.rmi.CORBA.Tie;
 
 import java.security.AccessController;
 import java.security.PrivilegedAction;
-
 import java.rmi.MarshalException;
 import java.rmi.NoSuchObjectException;
 import java.rmi.AccessException;
@@ -66,6 +61,7 @@ import javax.transaction.TransactionRequiredException;
 import javax.transaction.TransactionRolledbackException;
 import javax.transaction.InvalidTransactionException;
 
+import org.jboss.javax.rmi.RemoteObjectSubstitutionManager;
 import org.omg.CORBA.SystemException;
 import org.omg.CORBA.Any;
 import org.omg.CORBA.TypeCode;
@@ -91,6 +87,9 @@ import org.omg.CORBA.portable.OutputStream;
 // This class must be able to function with non-Sun ORBs.
 // This means that any of the following com.sun.corba classes
 // must only occur in contexts that also handle the non-Sun case.
+
+
+
 
 import com.sun.corba.se.pept.transport.ContactInfoList ;
 import com.sun.corba.se.spi.orb.ORB;
@@ -446,10 +445,12 @@ public class Util implements javax.rmi.CORBA.UtilDelegate
      */
     public void writeRemoteObject(OutputStream out, java.lang.Object obj)
     {
+        //allow the object to be replaced
+        Object replacedObj = RemoteObjectSubstitutionManager.writeReplaceRemote(obj);
         // Make sure we have a connected object, then
         // write it out...
 
-        Object newObj = Utility.autoConnect(obj,out.orb(),false);
+        Object newObj = Utility.autoConnect(replacedObj,out.orb(),false);
         out.write_Object((org.omg.CORBA.Object)newObj);
     }
 
@@ -464,10 +465,12 @@ public class Util implements javax.rmi.CORBA.UtilDelegate
      */
     public void writeAbstractObject( OutputStream out, java.lang.Object obj )
     {
+        //allow the object to be replaced
+        Object replacedObj = RemoteObjectSubstitutionManager.writeReplaceRemote(obj);
         // Make sure we have a connected object, then
         // write it out...
 
-        Object newObj = Utility.autoConnect(obj,out.orb(),false);
+        Object newObj = Utility.autoConnect(replacedObj,out.orb(),false);
         ((org.omg.CORBA_2_3.portable.OutputStream)out).write_abstract_interface(newObj);
     }
 
