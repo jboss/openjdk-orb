@@ -31,15 +31,13 @@
 
 package javax.rmi.CORBA;
 
-import java.io.Serializable;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
-import javax.rmi.CORBA.Tie;
-import javax.rmi.CORBA.ValueHandler;
+
 import org.omg.CORBA.ORB;
+import org.omg.CORBA.SystemException;
 import org.omg.CORBA.portable.InputStream;
 import org.omg.CORBA.portable.OutputStream;
-import org.omg.CORBA.SystemException;
 
 /**
  * Supports delegation for method implementations in {@link Util}.  The
@@ -104,12 +102,12 @@ public interface UtilDelegate {
     /**
      * Delegation call for {@link Util#getCodebase}.
      */
-    String getCodebase(Class clz);
+    String getCodebase(Class<?> clz);
 
     /**
      * Delegation call for {@link Util#loadClass}.
      */
-    Class loadClass(String className, String remoteCodebase, ClassLoader loader)
+    Class<?> loadClass(String className, String remoteCodebase, ClassLoader loader)
         throws ClassNotFoundException;
 
     /**

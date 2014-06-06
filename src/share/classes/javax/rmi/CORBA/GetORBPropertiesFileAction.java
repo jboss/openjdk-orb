@@ -37,16 +37,13 @@
 
 package javax.rmi.CORBA;
 
-import java.io.IOException;
 import java.io.File;
 import java.io.FileInputStream;
-
 import java.security.AccessController;
 import java.security.PrivilegedAction;
-import sun.security.action.GetPropertyAction;
 import java.util.Properties;
 
-class GetORBPropertiesFileAction implements PrivilegedAction {
+class GetORBPropertiesFileAction implements PrivilegedAction<Object> {
     private boolean debug = false ;
 
     public GetORBPropertiesFileAction () {
@@ -55,9 +52,9 @@ class GetORBPropertiesFileAction implements PrivilegedAction {
     private String getSystemProperty(final String name) {
         // This will not throw a SecurityException because this
         // class was loaded from rt.jar using the bootstrap classloader.
-        String propValue = (String) AccessController.doPrivileged(
-            new PrivilegedAction() {
-                public java.lang.Object run() {
+        String propValue = AccessController.doPrivileged(
+            new PrivilegedAction<String>() {
+                public String run() {
                     return System.getProperty(name);
                 }
             }
