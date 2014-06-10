@@ -174,11 +174,11 @@ public class ParserTable {
                 debugTestData, "subcontract,poa,transport" ),
             ParserDataFactory.make( ORBConstants.INITIAL_HOST_PROPERTY,
                 OperationFactory.stringAction(),
-                "ORBInitialHost", "",
+                "ORBInitialHost", null,
                 "Foo", "Foo" ),
             ParserDataFactory.make( ORBConstants.INITIAL_PORT_PROPERTY,
                 OperationFactory.integerAction(),
-                "ORBInitialPort", new Integer( ORBConstants.DEFAULT_INITIAL_PORT ),
+                "ORBInitialPort", null,
                 new Integer( 27314 ), "27314" ),
             // Where did this come from?
             //ParserDataFactory.make( ORBConstants.INITIAL_PORT_PROPERTY,

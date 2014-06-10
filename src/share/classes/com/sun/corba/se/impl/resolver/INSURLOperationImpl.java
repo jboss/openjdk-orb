@@ -80,7 +80,7 @@ public class INSURLOperationImpl implements Operation
     ORB orb;
     ORBUtilSystemException wrapper ;
     OMGSystemException omgWrapper ;
-    Resolver bootstrapResolver ;
+    Resolver rirResolver ;
 
     // Root Naming Context for default resolution of names.
     private NamingContextExt rootNamingContextExt;
@@ -89,14 +89,14 @@ public class INSURLOperationImpl implements Operation
     // The URLHandler to parse INS URL's
     private INSURLHandler insURLHandler = INSURLHandler.getINSURLHandler() ;
 
-    public INSURLOperationImpl( ORB orb, Resolver bootstrapResolver )
+    public INSURLOperationImpl( ORB orb, Resolver rirResolver )
     {
         this.orb = orb ;
         wrapper = ORBUtilSystemException.get( orb,
             CORBALogDomains.ORB_RESOLVER ) ;
         omgWrapper = OMGSystemException.get( orb,
             CORBALogDomains.ORB_RESOLVER ) ;
-        this.bootstrapResolver = bootstrapResolver ;
+        this.rirResolver = rirResolver ;
     }
 
     private static final int NIBBLES_PER_BYTE = 2 ;
@@ -161,7 +161,7 @@ public class INSURLOperationImpl implements Operation
         org.omg.CORBA.Object result = null;
         // If RIR flag is true use the Bootstrap protocol
         if( theCorbaLocObject.getRIRFlag( ) )  {
-            result = bootstrapResolver.resolve(theCorbaLocObject.getKeyString());
+            result = rirResolver.resolve(theCorbaLocObject.getKeyString());
         } else {
             result = getIORUsingCorbaloc( theCorbaLocObject );
         }

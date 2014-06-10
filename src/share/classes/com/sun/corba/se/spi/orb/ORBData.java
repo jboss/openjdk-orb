@@ -48,7 +48,7 @@ import com.sun.corba.se.impl.encoding.CodeSetComponentInfo ;
 public interface ORBData {
     public String getORBInitialHost() ;
 
-    public int getORBInitialPort() ;
+    public Integer getORBInitialPort() ;
 
     public String getORBServerHost() ;
 
