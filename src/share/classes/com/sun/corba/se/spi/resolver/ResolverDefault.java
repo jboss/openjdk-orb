@@ -85,10 +85,10 @@ public class ResolverDefault {
         return new CompositeResolverImpl( first, second ) ;
     }
 
-    public static Operation makeINSURLOperation( ORB orb, Resolver bootstrapResolver )
+    public static Operation makeINSURLOperation( ORB orb, Resolver rirResolver )
     {
         return new INSURLOperationImpl(
-            (com.sun.corba.se.spi.orb.ORB)orb, bootstrapResolver ) ;
+            (com.sun.corba.se.spi.orb.ORB)orb, rirResolver ) ;
     }
 
     public static LocalResolver makeSplitLocalResolver( Resolver resolver,

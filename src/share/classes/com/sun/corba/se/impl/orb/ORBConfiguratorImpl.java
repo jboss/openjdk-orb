@@ -416,12 +416,25 @@ public class ORBConfiguratorImpl implements ORBConfigurator {
         LocalResolver localResolver = ResolverDefault.makeLocalResolver() ;
         orb.setLocalResolver( localResolver ) ;
 
-        Resolver bootResolver = ResolverDefault.makeBootstrapResolver( orb,
-            orb.getORBData().getORBInitialHost(),
-            orb.getORBData().getORBInitialPort() ) ;
+        final String initialHost=orb.getORBData().getORBInitialHost();
+        final Integer initialPort =orb.getORBData().getORBInitialPort();
 
-        Operation urlOperation = ResolverDefault.makeINSURLOperation( orb,
-            bootResolver ) ;
+        final boolean useInitialHost = (initialHost!=null) && (initialPort!=null);
+
+        Resolver bootResolver;
+        Resolver rirResolver;
+
+        if(useInitialHost){
+            bootResolver=ResolverDefault.makeBootstrapResolver(orb, initialHost, initialPort);
+            rirResolver=ResolverDefault.makeCompositeResolver(localResolver, bootResolver);
+        } else {
+            bootResolver=null;
+            rirResolver=localResolver;
+        }
+
+        Operation  urlOperation = ResolverDefault.makeINSURLOperation( orb,
+                rirResolver) ;
+
         orb.setURLOperation( urlOperation ) ;
 
         Resolver irResolver = ResolverDefault.makeORBInitRefResolver( urlOperation,
@@ -430,11 +443,19 @@ public class ORBConfiguratorImpl implements ORBConfigurator {
         Resolver dirResolver = ResolverDefault.makeORBDefaultInitRefResolver(
             urlOperation, orb.getORBData().getORBDefaultInitialReference() ) ;
 
-        Resolver resolver =
-            ResolverDefault.makeCompositeResolver( localResolver,
-                ResolverDefault.makeCompositeResolver( irResolver,
-                    ResolverDefault.makeCompositeResolver( dirResolver,
-                        bootResolver ) ) ) ;
+        Resolver resolver;
+
+        if(useInitialHost){
+              resolver = ResolverDefault.makeCompositeResolver( localResolver,
+                    ResolverDefault.makeCompositeResolver( irResolver,
+                        ResolverDefault.makeCompositeResolver( dirResolver,
+                            bootResolver ) ) ) ;
+        } else {
+            resolver = ResolverDefault.makeCompositeResolver( localResolver,
+                    ResolverDefault.makeCompositeResolver( irResolver,
+                            dirResolver ) ) ;
+        }
+
         orb.setResolver( resolver ) ;
     }
 
