@@ -1,12 +1,12 @@
 /*
- * Copyright 2000-2003 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2000, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Sun designates this
+ * published by the Free Software Foundation.  Oracle designates this
  * particular file as subject to the "Classpath" exception as provided
- * by Sun in the LICENSE file that accompanied this code.
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -18,9 +18,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  */
 
 package com.sun.corba.se.impl.interceptors;
@@ -74,6 +74,7 @@ import com.sun.corba.se.spi.ior.iiop.IIOPProfileTemplate;
 import com.sun.corba.se.spi.ior.iiop.GIOPVersion;
 import com.sun.corba.se.spi.orb.ORB;
 import com.sun.corba.se.spi.protocol.CorbaMessageMediator;
+import com.sun.corba.se.spi.protocol.RetryType;
 import com.sun.corba.se.spi.transport.CorbaContactInfo;
 import com.sun.corba.se.spi.transport.CorbaContactInfoList;
 import com.sun.corba.se.spi.transport.CorbaContactInfoListIterator;
@@ -110,7 +111,7 @@ public final class ClientRequestInfoImpl
 
     // The current retry request status.  True if this request is being
     // retried and this info object is to be reused, or false otherwise.
-    private boolean retryRequest;
+    private RetryType retryRequest;
 
     // The number of times this info object has been (re)used.  This is
     // incremented every time a request is retried, and decremented every
@@ -163,7 +164,8 @@ public final class ClientRequestInfoImpl
 
         // Please keep these in the same order that they're declared above.
 
-        retryRequest = false;
+        // 6763340
+        retryRequest = RetryType.NONE;
 
         // Do not reset entryCount because we need to know when to pop this
         // from the stack.
@@ -215,7 +217,7 @@ public final class ClientRequestInfoImpl
 
     // ClientRequestInfo validity table (see ptc/00-08-06 table 21-1).
     // Note: These must be in the same order as specified in contants.
-    protected static final boolean validCall[][] = {
+    private static final boolean validCall[][] = {
         // LEGEND:
         // s_req = send_request     r_rep = receive_reply
         // s_pol = send_poll        r_exc = receive_exception
@@ -824,14 +826,15 @@ public final class ClientRequestInfoImpl
     /**
      * Set or reset the retry request flag.
      */
-    void setRetryRequest( boolean retryRequest ) {
+    void setRetryRequest( RetryType retryRequest ) {
         this.retryRequest = retryRequest;
     }
 
     /**
      * Retrieve the current retry request status.
      */
-    boolean getRetryRequest() {
+    RetryType getRetryRequest() {
+        // 6763340
         return this.retryRequest;
     }
 

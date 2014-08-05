@@ -1,12 +1,12 @@
 /*
- * Copyright 1998-2004 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1998, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Sun designates this
+ * published by the Free Software Foundation.  Oracle designates this
  * particular file as subject to the "Classpath" exception as provided
- * by Sun in the LICENSE file that accompanied this code.
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -18,9 +18,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  */
 /*
  * Licensed Materials - Property of IBM
@@ -300,11 +300,11 @@ public class IIOPInputStream
         resetStream();
     }
 
-    public final void setOrbStream(org.omg.CORBA_2_3.portable.InputStream os) {
+    final void setOrbStream(org.omg.CORBA_2_3.portable.InputStream os) {
         orbStream = os;
     }
 
-    public final org.omg.CORBA_2_3.portable.InputStream getOrbStream() {
+    final org.omg.CORBA_2_3.portable.InputStream getOrbStream() {
         return orbStream;
     }
 
@@ -327,11 +327,11 @@ public class IIOPInputStream
         return (javax.rmi.CORBA.ValueHandler) vhandler;
     }
 
-    public final void increaseRecursionDepth(){
+    final void increaseRecursionDepth(){
         recursionDepth++;
     }
 
-    public final int decreaseRecursionDepth(){
+    final int decreaseRecursionDepth(){
         return --recursionDepth;
     }
 
@@ -370,7 +370,7 @@ public class IIOPInputStream
      * @exception IOException Any of the usual Input/Output related exceptions.
      * @since     JDK1.1
      */
-    public final Object readObjectDelegate() throws IOException
+    public final synchronized Object readObjectDelegate() throws IOException
     {
         try {
 
@@ -389,7 +389,7 @@ public class IIOPInputStream
             }
     }
 
-    final Object simpleReadObject(Class clz,
+    final synchronized Object simpleReadObject(Class clz,
                                   String repositoryID,
                                   com.sun.org.omg.SendingContext.CodeBase sender,
                                   int offset)
@@ -461,7 +461,7 @@ public class IIOPInputStream
         return obj;
     }
 
-    public final void simpleSkipObject(String repositoryID,
+    public final synchronized  void simpleSkipObject(String repositoryID,
                                        com.sun.org.omg.SendingContext.CodeBase sender)
                                        /* throws OptionalDataException, ClassNotFoundException, IOException */
     {
@@ -559,7 +559,7 @@ public class IIOPInputStream
      *              objects.
      * @since     JDK1.1
      */
-    public final void defaultReadObjectDelegate()
+    final synchronized void defaultReadObjectDelegate()
     /* throws IOException, ClassNotFoundException, NotActiveException */
     {
         try {
@@ -988,7 +988,7 @@ public class IIOPInputStream
         }
     }
 
-    private Object inputObject(Class clz,
+    private synchronized Object inputObject(Class clz,
                                String repositoryID,
                                com.sun.org.omg.SendingContext.CodeBase sender,
                                int offset)
@@ -1012,7 +1012,11 @@ public class IIOPInputStream
              * else,
              *  Handle it as a serializable class.
              */
-            if (currentClassDesc.isExternalizable()) {
+            if (Enum.class.isAssignableFrom( clz )) {
+                int ordinal = orbStream.read_long() ;
+                String value = (String)orbStream.read_value( String.class ) ;
+                return Enum.valueOf( clz, value ) ;
+            } else if (currentClassDesc.isExternalizable()) {
                 try {
                     currentObject = (currentClass == null) ?
                         null : currentClassDesc.newInstance();
@@ -1313,7 +1317,7 @@ public class IIOPInputStream
      * a form of custom marshaling.
      *
      */
-    private Object inputObjectUsingFVD(Class clz,
+    private synchronized Object inputObjectUsingFVD(Class clz,
                                        String repositoryID,
                                        com.sun.org.omg.SendingContext.CodeBase sender,
                                        int offset)
@@ -2239,6 +2243,10 @@ public class IIOPInputStream
                 }
 
                 try {
+                    Class fieldCl = fields[i].getClazz();
+                    if (objectValue != null && !fieldCl.isInstance(objectValue)) {
+                        throw new IllegalArgumentException();
+                    }
                     bridge.putObject( o, fields[i].getFieldID(), objectValue ) ;
                     // reflective code: fields[i].getField().set( o, objectValue ) ;
                 } catch (IllegalArgumentException e) {
@@ -2549,12 +2557,16 @@ public class IIOPInputStream
     {
         try {
             Field fld = c.getDeclaredField( fieldName ) ;
+            Class fieldCl = fld.getType();
+            if(v != null && !fieldCl.isInstance(v)) {
+                throw new Exception();
+            }
             long key = bridge.objectFieldOffset( fld ) ;
             bridge.putObject( o, key, v ) ;
         } catch (Exception e) {
             throw utilWrapper.errorSetObjectField( e, fieldName,
-                ObjectUtility.compactObjectToString( o ),
-                ObjectUtility.compactObjectToString( v )) ;
+                o.toString(),
+                v.toString() ) ;
         }
     }
 
@@ -2566,7 +2578,7 @@ public class IIOPInputStream
             bridge.putBoolean( o, key, v ) ;
         } catch (Exception e) {
             throw utilWrapper.errorSetBooleanField( e, fieldName,
-                ObjectUtility.compactObjectToString( o ),
+                o.toString(),
                 new Boolean(v) ) ;
         }
     }
@@ -2579,7 +2591,7 @@ public class IIOPInputStream
             bridge.putByte( o, key, v ) ;
         } catch (Exception e) {
             throw utilWrapper.errorSetByteField( e, fieldName,
-                ObjectUtility.compactObjectToString( o ),
+                o.toString(),
                 new Byte(v) ) ;
         }
     }
@@ -2592,7 +2604,7 @@ public class IIOPInputStream
             bridge.putChar( o, key, v ) ;
         } catch (Exception e) {
             throw utilWrapper.errorSetCharField( e, fieldName,
-                ObjectUtility.compactObjectToString( o ),
+                o.toString(),
                 new Character(v) ) ;
         }
     }
@@ -2605,7 +2617,7 @@ public class IIOPInputStream
             bridge.putShort( o, key, v ) ;
         } catch (Exception e) {
             throw utilWrapper.errorSetShortField( e, fieldName,
-                ObjectUtility.compactObjectToString( o ),
+                o.toString(),
                 new Short(v) ) ;
         }
     }
@@ -2618,7 +2630,7 @@ public class IIOPInputStream
             bridge.putInt( o, key, v ) ;
         } catch (Exception e) {
             throw utilWrapper.errorSetIntField( e, fieldName,
-                ObjectUtility.compactObjectToString( o ),
+                o.toString(),
                 new Integer(v) ) ;
         }
     }
@@ -2631,7 +2643,7 @@ public class IIOPInputStream
             bridge.putLong( o, key, v ) ;
         } catch (Exception e) {
             throw utilWrapper.errorSetLongField( e, fieldName,
-                ObjectUtility.compactObjectToString( o ),
+                o.toString(),
                 new Long(v) ) ;
         }
     }
@@ -2644,7 +2656,7 @@ public class IIOPInputStream
             bridge.putFloat( o, key, v ) ;
         } catch (Exception e) {
             throw utilWrapper.errorSetFloatField( e, fieldName,
-                ObjectUtility.compactObjectToString( o ),
+                o.toString(),
                 new Float(v) ) ;
         }
     }
@@ -2657,7 +2669,7 @@ public class IIOPInputStream
             bridge.putDouble( o, key, v ) ;
         } catch (Exception e) {
             throw utilWrapper.errorSetDoubleField( e, fieldName,
-                ObjectUtility.compactObjectToString( o ),
+                o.toString(),
                 new Double(v) ) ;
         }
     }

@@ -1,12 +1,12 @@
 /*
- * Copyright 2003-2004 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2003, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Sun designates this
+ * published by the Free Software Foundation.  Oracle designates this
  * particular file as subject to the "Classpath" exception as provided
- * by Sun in the LICENSE file that accompanied this code.
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -18,9 +18,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  */
 
 package com.sun.corba.se.impl.transport;
@@ -32,6 +32,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Iterator;
 import java.util.List;
 
@@ -54,7 +55,7 @@ import com.sun.corba.se.impl.orbutil.ORBUtility;
 /**
  * @author Harold Carr
  */
-public class SelectorImpl
+class SelectorImpl
     extends
         Thread
     implements
@@ -66,10 +67,10 @@ public class SelectorImpl
     private List deferredRegistrations;
     private List interestOpsList;
     private HashMap listenerThreads;
-    private HashMap readerThreads;
+    private Map readerThreads;
     private boolean selectorStarted;
-    private boolean closed;
-    private ORBUtilSystemException wrapper ;
+    private volatile boolean closed;
+    private ORBUtilSystemException wrapper;
 
 
     public SelectorImpl(ORB orb)
@@ -81,7 +82,7 @@ public class SelectorImpl
         deferredRegistrations = new ArrayList();
         interestOpsList = new ArrayList();
         listenerThreads = new HashMap();
-        readerThreads = new HashMap();
+        readerThreads = java.util.Collections.synchronizedMap(new HashMap());
         closed = false;
         wrapper = ORBUtilSystemException.get(orb,CORBALogDomains.RPC_TRANSPORT);
     }
@@ -178,8 +179,13 @@ public class SelectorImpl
         }
 
         if (eventHandler.shouldUseSelectThreadToWait()) {
-            SelectionKey selectionKey = eventHandler.getSelectionKey();
-            selectionKey.cancel();
+            SelectionKey selectionKey ;
+            synchronized(deferredRegistrations) {
+                selectionKey = eventHandler.getSelectionKey();
+            }
+            if (selectionKey != null) {
+                selectionKey.cancel();
+            }
             selector.wakeup();
             return;
         }

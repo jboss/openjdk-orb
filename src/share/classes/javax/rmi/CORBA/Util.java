@@ -1,12 +1,12 @@
 /*
- * Copyright 1998-2006 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1998, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Sun designates this
+ * published by the Free Software Foundation.  Oracle designates this
  * particular file as subject to the "Classpath" exception as provided
- * by Sun in the LICENSE file that accompanied this code.
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -18,9 +18,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  */
 /*
  * Licensed Materials - Property of IBM
@@ -60,14 +60,11 @@ import com.sun.corba.se.impl.orbutil.GetPropertyAction;
 public class Util {
 
     // This can only be set at static initialization time (no sync necessary).
-    private static javax.rmi.CORBA.UtilDelegate utilDelegate = null;
+    private static final javax.rmi.CORBA.UtilDelegate utilDelegate;
     private static final String UtilClassKey = "javax.rmi.CORBA.UtilClass";
-    private static final String defaultUtilImplName =
-"com.sun.corba.se.impl.javax.rmi.CORBA.Util";
 
     static {
-        utilDelegate = (javax.rmi.CORBA.UtilDelegate)
-            createDelegateIfSpecified(UtilClassKey, defaultUtilImplName);
+        utilDelegate = (javax.rmi.CORBA.UtilDelegate)createDelegate(UtilClassKey);
     }
 
     private Util(){}
@@ -338,9 +335,7 @@ Tie#deactivate}
     // are in different packages and the visibility needs to be package for
     // security reasons. If you know a better solution how to share this code
     // then remove it from PortableRemoteObject. Also in Stub.java
-    private static Object createDelegateIfSpecified(String classKey,
-        String defaultClassName)
-    {
+    private static Object createDelegate(String classKey) {
         String className = (String)
             AccessController.doPrivileged(new GetPropertyAction(classKey));
         if (className == null) {
@@ -351,7 +346,7 @@ Tie#deactivate}
         }
 
         if (className == null) {
-            className = defaultClassName;
+            return new com.sun.corba.se.impl.javax.rmi.CORBA.Util();
         }
 
         try {

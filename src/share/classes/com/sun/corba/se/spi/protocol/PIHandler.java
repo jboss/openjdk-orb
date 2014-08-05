@@ -1,12 +1,12 @@
 /*
- * Copyright 2002-2003 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2002, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Sun designates this
+ * published by the Free Software Foundation.  Oracle designates this
  * particular file as subject to the "Classpath" exception as provided
- * by Sun in the LICENSE file that accompanied this code.
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -18,12 +18,14 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  */
 
 package com.sun.corba.se.spi.protocol;
+
+import java.io.Closeable;
 
 import org.omg.PortableInterceptor.ObjectReferenceTemplate ;
 import org.omg.PortableInterceptor.Interceptor ;
@@ -51,7 +53,7 @@ import com.sun.corba.se.impl.protocol.giopmsgheaders.ReplyMessage ;
 /** This interface defines the PI interface that is used to interface the rest of the
  * ORB to the PI implementation.
  */
-public interface PIHandler {
+public interface PIHandler extends Closeable {
     /** Complete the initialization of the PIHandler.  This will execute the methods
     * on the ORBInitializers, if any are defined.  This must be done here so that
     * the ORB can obtain the PIHandler BEFORE the ORBInitializers run, since they
@@ -139,6 +141,27 @@ public interface PIHandler {
      *     SystemException, UserException, or RemarshalException.
      */
     Exception invokeClientPIEndingPoint(
+        int replyStatus, Exception exception ) ;
+
+    /**
+     * Called when a retry is needed after initiateClientPIRequest but
+     * before invokeClientPIRequest.  In this case, we need to properly
+     * balance initiateClientPIRequest/cleanupClientPIRequest calls,
+     * but WITHOUT extraneous calls to invokeClientPIEndingPoint
+     * (see bug 6763340).
+     *
+     * @param replyStatus One of the constants in iiop.messages.ReplyMessage
+     *     indicating which reply status to set.
+     * @param exception The exception before ending interception points have
+     *     been invoked, or null if no exception at the moment.
+     * @return The exception to be thrown, after having gone through
+     *     all ending points, or null if there is no exception to be
+     *     thrown.  Note that this exception can be either the same or
+     *     different from the exception set using setClientPIException.
+     *     There are four possible return types: null (no exception),
+     *     SystemException, UserException, or RemarshalException.
+     */
+    Exception makeCompletedClientRequest(
         int replyStatus, Exception exception ) ;
 
     /**

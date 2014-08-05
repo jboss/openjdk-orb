@@ -1,12 +1,12 @@
 /*
- * Copyright 2002-2004 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2002, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Sun designates this
+ * published by the Free Software Foundation.  Oracle designates this
  * particular file as subject to the "Classpath" exception as provided
- * by Sun in the LICENSE file that accompanied this code.
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -18,9 +18,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  */
 
 package com.sun.corba.se.impl.oa.poa ;
@@ -93,7 +93,7 @@ public abstract class POAPolicyMediatorBase_R extends POAPolicyMediatorBase {
 
         activeObjectMap.putServant( servant, entry ) ;
 
-        if (Util.instance != null) {
+        if (Util.isInstanceDefined()) {
             POAManagerImpl pm = (POAManagerImpl)poa.the_POAManager() ;
             POAFactory factory = pm.getFactory() ;
             factory.registerPOAForServant(poa, servant);
@@ -107,13 +107,9 @@ public abstract class POAPolicyMediatorBase_R extends POAPolicyMediatorBase {
             throw new ServantAlreadyActive();
         ActiveObjectMap.Key key = new ActiveObjectMap.Key( id ) ;
 
-        // Note that this can't happen for system assigned IDs since the
-        // POA never hands out the same ID.  However, we make this redundant
-        // check here to share the code.
-        if (activeObjectMap.containsKey(key))
-            throw new ObjectAlreadyActive() ;
-
         AOMEntry entry = activeObjectMap.get( key ) ;
+
+        // Check for an ObjectAlreadyActive error
         entry.activateObject() ;
         activateServant( key, entry, servant ) ;
     }
@@ -133,7 +129,7 @@ public abstract class POAPolicyMediatorBase_R extends POAPolicyMediatorBase {
 
         activeObjectMap.remove(key);
 
-        if (Util.instance != null) {
+        if (Util.isInstanceDefined()) {
             POAManagerImpl pm = (POAManagerImpl)poa.the_POAManager() ;
             POAFactory factory = pm.getFactory() ;
             factory.unregisterPOAForServant(poa, s);
