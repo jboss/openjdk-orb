@@ -1,12 +1,12 @@
 /*
- * Copyright 2001-2004 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2001, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Sun designates this
+ * published by the Free Software Foundation.  Oracle designates this
  * particular file as subject to the "Classpath" exception as provided
- * by Sun in the LICENSE file that accompanied this code.
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -18,9 +18,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  */
 
 /*
@@ -113,6 +113,10 @@ import com.sun.corba.se.impl.protocol.giopmsgheaders.ReferenceAddr;
 import com.sun.corba.se.impl.transport.CorbaContactInfoListIteratorImpl;
 import com.sun.corba.se.impl.util.JDKBridge;
 
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ConcurrentHashMap;
+import sun.corba.EncapsInputStreamFactory;
+
 /**
  * ClientDelegate is the RMI client-side subcontract or representation
  * It implements RMI delegate as well as our internal ClientRequestDispatcher
@@ -122,8 +126,8 @@ public class CorbaClientRequestDispatcherImpl
     implements
         ClientRequestDispatcher
 {
-    // Used for locking
-    private Object lock = new Object();
+    private ConcurrentMap<ContactInfo, Object> locks =
+            new ConcurrentHashMap<ContactInfo, Object>();
 
     public OutputObject beginRequest(Object self, String opName,
                                      boolean isOneWay, ContactInfo contactInfo)
@@ -151,6 +155,20 @@ public class CorbaClientRequestDispatcherImpl
 
         // This locking is done so that multiple connections are not created
         // for the same endpoint
+        // 7046238 - Synchronization on a single monitor for contactInfo parameters
+        // with identical hashCode(), so we lock on same monitor for equal parameters
+        // (which can refer to equal (in terms of equals()) but not the same objects)
+
+        Object lock = locks.get(contactInfo);
+
+        if (lock == null) {
+            Object newLock = new Object();
+            lock = locks.putIfAbsent(contactInfo, newLock);
+            if (lock == null) {
+                lock = newLock;
+            }
+        }
+
         synchronized (lock) {
             if (contactInfo.isConnectionBased()) {
                 if (contactInfo.shouldCacheConnection()) {
@@ -185,6 +203,7 @@ public class CorbaClientRequestDispatcherImpl
                             if(getContactInfoListIterator(orb).hasNext()) {
                                 contactInfo = (ContactInfo)
                                    getContactInfoListIterator(orb).next();
+                                unregisterWaiter(orb);
                                 return beginRequest(self, opName,
                                                     isOneWay, contactInfo);
                             } else {
@@ -292,10 +311,22 @@ public class CorbaClientRequestDispatcherImpl
             // ContactInfoList outside of subcontract.
             // Want to move that update to here.
             if (getContactInfoListIterator(orb).hasNext()) {
-                contactInfo = (ContactInfo)
-                    getContactInfoListIterator(orb).next();
+                contactInfo = (ContactInfo)getContactInfoListIterator(orb).next();
+                if (orb.subcontractDebugFlag) {
+                    dprint( "RemarshalException: hasNext true\ncontact info " + contactInfo );
+                }
+
+                // Fix for 6763340: Complete the first attempt before starting another.
+                orb.getPIHandler().makeCompletedClientRequest(
+                    ReplyMessage.LOCATION_FORWARD, null ) ;
+                unregisterWaiter(orb);
+                orb.getPIHandler().cleanupClientPIRequest() ;
+
                 return beginRequest(self, opName, isOneWay, contactInfo);
             } else {
+                if (orb.subcontractDebugFlag) {
+                    dprint( "RemarshalException: hasNext false" );
+                }
                 ORBUtilSystemException wrapper =
                     ORBUtilSystemException.get(orb,
                                                CORBALogDomains.RPC_PROTOCOL);
@@ -374,11 +405,15 @@ public class CorbaClientRequestDispatcherImpl
             boolean retry  =
                 getContactInfoListIterator(orb)
                     .reportException(messageMediator.getContactInfo(), e);
-            if (retry) {
-                // Must run interceptor end point before retrying.
-                Exception newException =
+
+            //Bug 6382377: must not lose exception in PI
+
+            // Must run interceptor end point before retrying.
+            Exception newException =
                     orb.getPIHandler().invokeClientPIEndingPoint(
-                        ReplyMessage.SYSTEM_EXCEPTION, e);
+                    ReplyMessage.SYSTEM_EXCEPTION, e);
+
+            if (retry) {
                 if (newException == e) {
                     continueOrThrowSystemOrRemarshal(messageMediator,
                                                      new RemarshalException());
@@ -387,6 +422,14 @@ public class CorbaClientRequestDispatcherImpl
                                                      newException);
                 }
             } else {
+                if (newException instanceof RuntimeException){
+                    throw (RuntimeException)newException;
+                }
+                else if (newException instanceof RemarshalException)
+                {
+                    throw (RemarshalException)newException;
+                }
+
                 // NOTE: Interceptor ending point will run in releaseReply.
                 throw e;
             }
@@ -805,8 +848,8 @@ public class CorbaClientRequestDispatcherImpl
         }
         byte[] data = ((UnknownServiceContext)sc).getData();
         EncapsInputStream in =
-            new EncapsInputStream((ORB)messageMediator.getBroker(),
-                                  data, data.length);
+                EncapsInputStreamFactory.newEncapsInputStream((ORB)messageMediator.getBroker(),
+                                      data, data.length);
         in.consumeEndian();
 
         String msg =

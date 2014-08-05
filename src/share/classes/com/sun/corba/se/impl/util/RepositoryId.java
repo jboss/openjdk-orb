@@ -1,12 +1,12 @@
 /*
- * Copyright 1998-2004 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1998, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Sun designates this
+ * published by the Free Software Foundation.  Oracle designates this
  * particular file as subject to the "Classpath" exception as provided
- * by Sun in the LICENSE file that accompanied this code.
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -18,9 +18,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  */
 /*
  * Licensed Materials - Property of IBM
@@ -57,7 +57,7 @@ public class RepositoryId {
     // uniformly, and is safe because that is the only
     // legal use of '.' in a Java name.
 
-    public static final byte[] IDL_IDENTIFIER_CHARS = {
+    private static final byte[] IDL_IDENTIFIER_CHARS = {
 
         // 0 1 2 3  4 5 6 7  8 9 a b  c d e f
         0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0, // 00-0f
@@ -95,7 +95,7 @@ public class RepositoryId {
     private static IdentityHashtable classIDLToRepStr = new IdentityHashtable();
     private static IdentityHashtable classSeqToRepStr = new IdentityHashtable();
 
-    private static IdentityHashtable repStrToByteArray = new IdentityHashtable();
+    private static final IdentityHashtable repStrToByteArray = new IdentityHashtable();
     private static Hashtable repStrToClass = new Hashtable();
 
     private String repId = null;
@@ -192,7 +192,7 @@ public class RepositoryId {
     public static final String kRemoteTypeStr = "";
     public static final String kRemoteValueRepID = "";
 
-    public static final Hashtable kSpecialArrayTypeStrings = new Hashtable();
+    private static final Hashtable kSpecialArrayTypeStrings = new Hashtable();
 
     static {
         kSpecialArrayTypeStrings.put("CORBA.WStringValue", new StringBuffer(java.lang.String.class.getName()));
@@ -201,7 +201,7 @@ public class RepositoryId {
 
     }
 
-    public static final Hashtable kSpecialCasesRepIDs = new Hashtable();
+    private static final Hashtable kSpecialCasesRepIDs = new Hashtable();
 
     static {
         kSpecialCasesRepIDs.put(java.lang.String.class, kWStringValueRepID);
@@ -209,7 +209,7 @@ public class RepositoryId {
         kSpecialCasesRepIDs.put(java.rmi.Remote.class, kRemoteValueRepID);
     }
 
-    public static final Hashtable kSpecialCasesStubValues = new Hashtable();
+    private static final Hashtable kSpecialCasesStubValues = new Hashtable();
 
     static {
         kSpecialCasesStubValues.put(java.lang.String.class, kWStringStubValue);
@@ -221,7 +221,7 @@ public class RepositoryId {
     }
 
 
-    public static final Hashtable kSpecialCasesVersions = new Hashtable();
+    private static final Hashtable kSpecialCasesVersions = new Hashtable();
 
     static {
         kSpecialCasesVersions.put(java.lang.String.class, kWStringValueHash);
@@ -232,7 +232,7 @@ public class RepositoryId {
         kSpecialCasesVersions.put(java.rmi.Remote.class, kRemoteValueHash);
     }
 
-    public static final Hashtable kSpecialCasesClasses = new Hashtable();
+    private static final Hashtable kSpecialCasesClasses = new Hashtable();
 
     static {
         kSpecialCasesClasses.put(kWStringTypeStr, java.lang.String.class);
@@ -244,7 +244,7 @@ public class RepositoryId {
         //kSpecialCasesClasses.put(kRemoteTypeStr, java.rmi.Remote.class);
     }
 
-    public static final Hashtable kSpecialCasesArrayPrefix = new Hashtable();
+    private static final Hashtable kSpecialCasesArrayPrefix = new Hashtable();
 
     static {
         kSpecialCasesArrayPrefix.put(java.lang.String.class, kValuePrefix + kSequencePrefix + kCORBAPrefix);
@@ -255,7 +255,7 @@ public class RepositoryId {
         kSpecialCasesArrayPrefix.put(java.rmi.Remote.class, kValuePrefix + kSequencePrefix + kCORBAPrefix);
     }
 
-    public static final Hashtable kSpecialPrimitives = new Hashtable();
+    private static final Hashtable kSpecialPrimitives = new Hashtable();
 
     static {
         kSpecialPrimitives.put("int","long");

@@ -1,3 +1,5 @@
 ^build/
 ^dist/
-^nbproject/private/
+/nbproject/private/
+^.hgtip
+.DS_Store

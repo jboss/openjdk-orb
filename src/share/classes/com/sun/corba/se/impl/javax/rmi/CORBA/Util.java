@@ -1,12 +1,12 @@
 /*
- * Copyright 1999-2004 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1999, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Sun designates this
+ * published by the Free Software Foundation.  Oracle designates this
  * particular file as subject to the "Classpath" exception as provided
- * by Sun in the LICENSE file that accompanied this code.
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -18,9 +18,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  */
 /*
  * Licensed Materials - Property of IBM
@@ -109,9 +109,9 @@ import com.sun.corba.se.impl.logging.OMGSystemException;
 import com.sun.corba.se.impl.util.Utility;
 import com.sun.corba.se.impl.util.IdentityHashtable;
 import com.sun.corba.se.impl.util.JDKBridge;
-import com.sun.corba.se.impl.orbutil.ORBClassLoader;
 import com.sun.corba.se.impl.logging.UtilSystemException;
 import com.sun.corba.se.spi.logging.CORBALogDomains;
+import sun.corba.SharedSecrets;
 
 /**
  * Provides utility methods that can be used by stubs and ties to
@@ -125,15 +125,29 @@ public class Util implements javax.rmi.CORBA.UtilDelegate
     // Maps targets to ties.
     private static IdentityHashtable exportedServants = new IdentityHashtable();
 
-    private static ValueHandlerImpl valueHandlerSingleton = new ValueHandlerImpl();
+    private static final ValueHandlerImpl valueHandlerSingleton =
+        SharedSecrets.getJavaCorbaAccess().newValueHandlerImpl();
 
     private UtilSystemException utilWrapper = UtilSystemException.get(
                                                   CORBALogDomains.RPC_ENCODING);
 
-    public static Util instance = null;
+    private static Util instance = null;
 
     public Util() {
-        instance = this;
+        setInstance(this);
+    }
+
+    private static void setInstance( Util util ) {
+        assert instance == null : "Instance already defined";
+        instance = util;
+    }
+
+    public static Util getInstance() {
+        return instance;
+    }
+
+    public static boolean isInstanceDefined() {
+        return instance != null;
     }
 
     // Used by TOAFactory.shutdown to unexport all targets for this
@@ -246,7 +260,7 @@ public class Util implements javax.rmi.CORBA.UtilDelegate
             return new MarshalException(message,inner);
         } else if (ex instanceof ACTIVITY_REQUIRED) {
             try {
-                Class cl = ORBClassLoader.loadClass(
+                Class<?> cl = SharedSecrets.getJavaCorbaAccess().loadClass(
                                "javax.activity.ActivityRequiredException");
                 Class[] params = new Class[2];
                 params[0] = java.lang.String.class;
@@ -262,7 +276,7 @@ public class Util implements javax.rmi.CORBA.UtilDelegate
             }
         } else if (ex instanceof ACTIVITY_COMPLETED) {
             try {
-                Class cl = ORBClassLoader.loadClass(
+                Class<?> cl = SharedSecrets.getJavaCorbaAccess().loadClass(
                                "javax.activity.ActivityCompletedException");
                 Class[] params = new Class[2];
                 params[0] = java.lang.String.class;
@@ -278,7 +292,7 @@ public class Util implements javax.rmi.CORBA.UtilDelegate
               }
         } else if (ex instanceof INVALID_ACTIVITY) {
             try {
-                Class cl = ORBClassLoader.loadClass(
+                Class<?> cl = SharedSecrets.getJavaCorbaAccess().loadClass(
                                "javax.activity.InvalidActivityException");
                 Class[] params = new Class[2];
                 params[0] = java.lang.String.class;

@@ -1,12 +1,12 @@
 /*
- * Copyright 2002-2003 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2002, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Sun designates this
+ * published by the Free Software Foundation.  Oracle designates this
  * particular file as subject to the "Classpath" exception as provided
- * by Sun in the LICENSE file that accompanied this code.
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -18,9 +18,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  */
 
 package com.sun.corba.se.impl.encoding;
@@ -61,6 +61,8 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 
+import sun.corba.EncapsInputStreamFactory;
+
 public final class TypeCodeOutputStream extends EncapsOutputStream
 {
     private OutputStream enclosure = null;
@@ -77,9 +79,9 @@ public final class TypeCodeOutputStream extends EncapsOutputStream
 
     public org.omg.CORBA.portable.InputStream create_input_stream()
     {
-        //return new TypeCodeInputStream((ORB)orb(), getByteBuffer(), getIndex(), isLittleEndian());
-        TypeCodeInputStream tcis
-            = new TypeCodeInputStream((ORB)orb(), getByteBuffer(), getIndex(), isLittleEndian(), getGIOPVersion());
+        TypeCodeInputStream tcis = EncapsInputStreamFactory
+                .newTypeCodeInputStream((ORB) orb(), getByteBuffer(),
+                        getIndex(), isLittleEndian(), getGIOPVersion());
         //if (TypeCodeImpl.debug) {
             //System.out.println("Created TypeCodeInputStream " + tcis + " with no parent");
             //tcis.printBuffer();
@@ -196,7 +198,8 @@ public final class TypeCodeOutputStream extends EncapsOutputStream
     }
 
     public TypeCodeOutputStream createEncapsulation(org.omg.CORBA.ORB _orb) {
-        TypeCodeOutputStream encap = new TypeCodeOutputStream((ORB)_orb, isLittleEndian());
+        TypeCodeOutputStream encap =
+            sun.corba.OutputStreamFactory.newTypeCodeOutputStream((ORB)_orb, isLittleEndian());
         encap.setEnclosingOutputStream(this);
         encap.makeEncapsulation();
         //if (TypeCodeImpl.debug) System.out.println("Created TypeCodeOutputStream " + encap + " with parent " + this);
@@ -211,7 +214,8 @@ public final class TypeCodeOutputStream extends EncapsOutputStream
 
     public static TypeCodeOutputStream wrapOutputStream(OutputStream os) {
         boolean littleEndian = ((os instanceof CDROutputStream) ? ((CDROutputStream)os).isLittleEndian() : false);
-        TypeCodeOutputStream tos = new TypeCodeOutputStream((ORB)os.orb(), littleEndian);
+        TypeCodeOutputStream tos =
+            sun.corba.OutputStreamFactory.newTypeCodeOutputStream((ORB)os.orb(), littleEndian);
         tos.setEnclosingOutputStream(os);
         //if (TypeCodeImpl.debug) System.out.println("Created TypeCodeOutputStream " + tos + " with parent " + os);
         return tos;

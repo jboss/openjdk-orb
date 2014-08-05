@@ -1,12 +1,12 @@
 /*
- * Copyright 1997-2004 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1997, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Sun designates this
+ * published by the Free Software Foundation.  Oracle designates this
  * particular file as subject to the "Classpath" exception as provided
- * by Sun in the LICENSE file that accompanied this code.
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -18,9 +18,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  */
 /*
  * Licensed Materials - Property of IBM
@@ -189,18 +189,8 @@ public class CDROutputStream_1_0 extends CDROutputStreamBase
 
     private final void createRepositoryIdHandlers()
     {
-        if (orb != null) {
-            // Get the appropriate versions based on the ORB version.  The
-            // ORB versioning info is only in the core ORB.
-            repIdUtil
-                = RepositoryIdFactory.getRepIdUtility(orb);
-            repIdStrs
-                = RepositoryIdFactory.getRepIdStringsFactory(orb);
-        } else {
-            // Get the latest versions
-            repIdUtil = RepositoryIdFactory.getRepIdUtility();
-            repIdStrs = RepositoryIdFactory.getRepIdStringsFactory();
-        }
+        repIdUtil = RepositoryIdFactory.getRepIdUtility();
+        repIdStrs = RepositoryIdFactory.getRepIdStringsFactory();
     }
 
     public BufferManagerWrite getBufferManager()
@@ -705,7 +695,7 @@ public class CDROutputStream_1_0 extends CDROutputStreamBase
     private void writeArray(Serializable array, Class clazz) {
 
         if (valueHandler == null)
-            valueHandler = ORBUtility.createValueHandler(orb); //d11638
+            valueHandler = ORBUtility.createValueHandler(); //d11638
 
         // Write value_tag
         int indirection = writeValueTag(mustChunk, true,
@@ -768,7 +758,7 @@ public class CDROutputStream_1_0 extends CDROutputStreamBase
 
     private void writeRMIIIOPValueType(Serializable object, Class clazz) {
         if (valueHandler == null)
-            valueHandler = ORBUtility.createValueHandler(orb); //d11638
+            valueHandler = ORBUtility.createValueHandler(); //d11638
 
         Serializable key = object;
 
@@ -1902,7 +1892,6 @@ public class CDROutputStream_1_0 extends CDROutputStreamBase
 
         if (getByteBufferWithInfo() != null && getByteBuffer() != null)
         {
-            int bbHash = System.identityHashCode(bbwi.byteBuffer);
             MessageMediator messageMediator = parent.getMessageMediator();
             if (messageMediator != null)
             {
@@ -1910,19 +1899,12 @@ public class CDROutputStream_1_0 extends CDROutputStreamBase
                                (CDRInputObject)messageMediator.getInputObject();
                 if (inputObj != null)
                 {
-                    ByteBuffer inputBb = inputObj.getByteBuffer();
-
-                    int iBbHash = 0;
-                    if (inputBb != null)
+                    if (inputObj.isSharing(getByteBuffer()))
                     {
-                        iBbHash = System.identityHashCode(inputBb);
-                        if (bbHash == iBbHash)  // shared?
-                        {
-                            // Set InputStream's ByteBuffer and bbwi to null
-                            // so its ByteBuffer cannot be released to the pool
-                            inputObj.setByteBuffer(null);
-                            inputObj.setByteBufferWithInfo(null);
-                        }
+                        // Set InputStream's ByteBuffer and bbwi to null
+                        // so its ByteBuffer cannot be released to the pool
+                        inputObj.setByteBuffer(null);
+                        inputObj.setByteBufferWithInfo(null);
                     }
                 }
             }

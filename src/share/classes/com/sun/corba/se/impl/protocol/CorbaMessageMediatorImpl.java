@@ -1,12 +1,12 @@
 /*
- * Copyright 2001-2004 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2001, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Sun designates this
+ * published by the Free Software Foundation.  Oracle designates this
  * particular file as subject to the "Classpath" exception as provided
- * by Sun in the LICENSE file that accompanied this code.
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -18,9 +18,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  */
 
 package com.sun.corba.se.impl.protocol;
@@ -1666,7 +1666,9 @@ public class CorbaMessageMediatorImpl
         ((CDRInputObject)messageMediator.getInputObject()).unmarshalHeader();
 
         ORB orb = (ORB)messageMediator.getBroker();
-        orb.checkShutdownState();
+        synchronized (orb) {
+            orb.checkShutdownState();
+        }
 
         ObjectKey okey = messageMediator.getObjectKey();
         if (orb.subcontractDebugFlag) {
@@ -1792,8 +1794,7 @@ public class CorbaMessageMediatorImpl
 
         if (msg.getGIOPVersion().lessThan(GIOPVersion.V1_2)) {
             // locate msgs 1.0 & 1.1 :=> grow,
-            // REVISIT - build from factory
-            outputObject = new CDROutputObject(
+            outputObject = sun.corba.OutputStreamFactory.newCDROutputObject(
                              (ORB) messageMediator.getBroker(),
                              this,
                              GIOPVersion.V1_0,
@@ -1802,8 +1803,7 @@ public class CorbaMessageMediatorImpl
                              ORBConstants.STREAM_FORMAT_VERSION_1);
         } else {
             // 1.2 :=> stream
-            // REVISIT - build from factory
-            outputObject = new CDROutputObject(
+            outputObject = sun.corba.OutputStreamFactory.newCDROutputObject(
                              (ORB) messageMediator.getBroker(),
                              messageMediator,
                              reply,
@@ -1957,7 +1957,8 @@ public class CorbaMessageMediatorImpl
                           ReplyMessage.NEEDS_ADDRESSING_MODE,
                           null, null);
             // REVISIT: via acceptor factory.
-            CDROutputObject outputObject = new CDROutputObject(
+            CDROutputObject outputObject =
+                sun.corba.OutputStreamFactory.newCDROutputObject(
                 (ORB)messageMediator.getBroker(),
                 this,
                 messageMediator.getGIOPVersion(),
@@ -2124,7 +2125,7 @@ public class CorbaMessageMediatorImpl
         ex.printStackTrace(pw);
         pw.flush(); // NOTE: you must flush or baos will be empty.
         EncapsOutputStream encapsOutputStream =
-            new EncapsOutputStream((ORB)mediator.getBroker());
+            sun.corba.OutputStreamFactory.newEncapsOutputStream((ORB)mediator.getBroker());
         encapsOutputStream.putEndian();
         encapsOutputStream.write_wstring(baos.toString());
         UnknownServiceContext serviceContext =
@@ -2201,12 +2202,11 @@ public class CorbaMessageMediatorImpl
         // REVISIT = do not use null.
         //
         if (messageMediator.getConnection() == null) {
-            // REVISIT - needs factory
             replyOutputObject =
-                new CDROutputObject(orb, messageMediator,
-                                    messageMediator.getReplyHeader(),
-                                    messageMediator.getStreamFormatVersion(),
-                                    BufferManagerFactory.GROW);
+                sun.corba.OutputStreamFactory.newCDROutputObject(orb,
+                            messageMediator, messageMediator.getReplyHeader(),
+                            messageMediator.getStreamFormatVersion(),
+                            BufferManagerFactory.GROW);
         } else {
             replyOutputObject = messageMediator.getConnection().getAcceptor()
              .createOutputObject(messageMediator.getBroker(), messageMediator);

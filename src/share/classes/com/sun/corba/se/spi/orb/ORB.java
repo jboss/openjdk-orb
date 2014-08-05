@@ -1,12 +1,12 @@
 /*
- * Copyright 2002-2004 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2002, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Sun designates this
+ * published by the Free Software Foundation.  Oracle designates this
  * particular file as subject to the "Classpath" exception as provided
- * by Sun in the LICENSE file that accompanied this code.
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -18,9 +18,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  */
 
 package com.sun.corba.se.spi.orb;
@@ -97,7 +97,8 @@ import com.sun.corba.se.impl.logging.OMGSystemException ;
 
 import com.sun.corba.se.impl.presentation.rmi.PresentationManagerImpl ;
 
-import com.sun.corba.se.impl.orbutil.ORBClassLoader ;
+import sun.awt.AppContext;
+import sun.corba.SharedSecrets;
 
 public abstract class ORB extends com.sun.corba.se.org.omg.CORBA.ORB
     implements Broker, TypeCodeFactory
@@ -169,18 +170,17 @@ public abstract class ORB extends com.sun.corba.se.org.omg.CORBA.ORB
     // representing LogDomain and ExceptionGroup.
     private Map wrapperMap ;
 
+    static class Holder {
+        static final PresentationManager defaultPresentationManager =
+            setupPresentationManager();
+    }
+    private static final Object pmLock = new Object();
+
     private static Map staticWrapperMap = new ConcurrentHashMap();
 
-    private MonitoringManager monitoringManager;
+    protected MonitoringManager monitoringManager;
 
-    // There is only one instance of the PresentationManager
-    // that is shared between all ORBs.  This is necessary
-    // because RMI-IIOP requires the PresentationManager in
-    // places where no ORB is available, so the PresentationManager
-    // must be global.  It is initialized here as well.
-    protected static PresentationManager globalPM = null ;
-
-    static {
+    private static PresentationManager setupPresentationManager() {
         staticWrapper = ORBUtilSystemException.get(
             CORBALogDomains.RPC_PRESENTATION ) ;
 
@@ -207,7 +207,7 @@ public abstract class ORB extends com.sun.corba.se.org.omg.CORBA.ORB
 
                         try {
                             // First try the configured class name, if any
-                            Class cls = ORBClassLoader.loadClass( className ) ;
+                            Class<?> cls = SharedSecrets.getJavaCorbaAccess().loadClass( className ) ;
                             sff = (PresentationManager.StubFactoryFactory)cls.newInstance() ;
                         } catch (Exception exc) {
                             // Use the default. Log the error as a warning.
@@ -220,17 +220,45 @@ public abstract class ORB extends com.sun.corba.se.org.omg.CORBA.ORB
                 }
             ) ;
 
-        globalPM = new PresentationManagerImpl( useDynamicStub ) ;
-        globalPM.setStubFactoryFactory( false,
+        PresentationManager pm = new PresentationManagerImpl( useDynamicStub ) ;
+        pm.setStubFactoryFactory( false,
             PresentationDefaults.getStaticStubFactoryFactory() ) ;
-        globalPM.setStubFactoryFactory( true, dynamicStubFactoryFactory ) ;
+        pm.setStubFactoryFactory( true, dynamicStubFactoryFactory ) ;
+        return pm;
     }
 
-    /** Get the single instance of the PresentationManager
+    public void destroy() {
+        wrapper = null;
+        omgWrapper = null;
+        typeCodeMap = null;
+        primitiveTypeCodeConstants = null;
+        byteBufferPool = null;
+    }
+
+    /**
+     * Returns the Presentation Manager for the current thread group, using the ThreadGroup-specific
+     * AppContext to hold it. Creates and records one if needed.
      */
     public static PresentationManager getPresentationManager()
     {
-        return globalPM ;
+        SecurityManager sm = System.getSecurityManager();
+        if (sm != null && AppContext.getAppContexts().size() > 0) {
+            AppContext ac = AppContext.getAppContext();
+            if (ac != null) {
+                synchronized (pmLock) {
+                    PresentationManager pm =
+                        (PresentationManager) ac.get(PresentationManager.class);
+                    if (pm == null) {
+                        pm = setupPresentationManager();
+                        ac.put(PresentationManager.class, pm);
+                    }
+                    return pm;
+                }
+            }
+        }
+
+        // No security manager or AppContext
+        return Holder.defaultPresentationManager;
     }
 
     /** Get the appropriate StubFactoryFactory.  This
@@ -240,8 +268,9 @@ public abstract class ORB extends com.sun.corba.se.org.omg.CORBA.ORB
     public static PresentationManager.StubFactoryFactory
         getStubFactoryFactory()
     {
-        boolean useDynamicStubs = globalPM.useDynamicStubs() ;
-        return globalPM.getStubFactoryFactory( useDynamicStubs ) ;
+        PresentationManager gPM = getPresentationManager();
+        boolean useDynamicStubs = gPM.useDynamicStubs() ;
+        return gPM.getStubFactoryFactory( useDynamicStubs ) ;
     }
 
     protected ORB()
@@ -302,6 +331,9 @@ public abstract class ORB extends com.sun.corba.se.org.omg.CORBA.ORB
     // Typecode support: needed in both ORBImpl and ORBSingleton
     public TypeCodeImpl get_primitive_tc(int kind)
     {
+        synchronized (this) {
+            checkShutdownState();
+        }
         try {
             return primitiveTypeCodeConstants[kind] ;
         } catch (Throwable t) {
@@ -311,15 +343,20 @@ public abstract class ORB extends com.sun.corba.se.org.omg.CORBA.ORB
 
     public synchronized void setTypeCode(String id, TypeCodeImpl code)
     {
+        checkShutdownState();
         typeCodeMap.put(id, code);
     }
 
     public synchronized TypeCodeImpl getTypeCode(String id)
     {
+        checkShutdownState();
         return (TypeCodeImpl)typeCodeMap.get(id);
     }
 
     public MonitoringManager getMonitoringManager( ) {
+        synchronized (this) {
+            checkShutdownState();
+        }
         return monitoringManager;
     }
 
@@ -434,6 +471,9 @@ public abstract class ORB extends com.sun.corba.se.org.omg.CORBA.ORB
      */
     public Logger getLogger( String domain )
     {
+        synchronized (this) {
+            checkShutdownState();
+        }
         ORBData odata = getORBData() ;
 
         // Determine the correct ORBId.  There are 3 cases:
@@ -510,6 +550,9 @@ public abstract class ORB extends com.sun.corba.se.org.omg.CORBA.ORB
     //       This method must also be inherited by both ORB and ORBSingleton.
     public ByteBufferPool getByteBufferPool()
     {
+        synchronized (this) {
+            checkShutdownState();
+        }
         if (byteBufferPool == null)
             byteBufferPool = new ByteBufferPoolImpl(this);
 

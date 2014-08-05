@@ -1,12 +1,12 @@
 /*
- * Copyright 1998-2004 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1998, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Sun designates this
+ * published by the Free Software Foundation.  Oracle designates this
  * particular file as subject to the "Classpath" exception as provided
- * by Sun in the LICENSE file that accompanied this code.
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -18,9 +18,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  */
 /*
  * Licensed Materials - Property of IBM
@@ -32,38 +32,28 @@
 package com.sun.corba.se.impl.io;
 
 import javax.rmi.CORBA.Util;
-import javax.rmi.PortableRemoteObject;
 
 import java.util.Hashtable;
-import java.util.Stack;
 import java.io.IOException;
-import java.util.EmptyStackException;
 
-import com.sun.corba.se.impl.util.Utility;
-import com.sun.corba.se.impl.io.IIOPInputStream;
-import com.sun.corba.se.impl.io.IIOPOutputStream;
 import com.sun.corba.se.impl.util.RepositoryId;
 import com.sun.corba.se.impl.util.Utility;
 
 import org.omg.CORBA.TCKind;
 
-import org.omg.CORBA.MARSHAL;
-import org.omg.CORBA.BAD_PARAM;
-import org.omg.CORBA.CompletionStatus;
 import org.omg.CORBA.portable.IndirectionException;
 import com.sun.org.omg.SendingContext.CodeBase;
 import com.sun.org.omg.SendingContext.CodeBaseHelper;
 
 import java.security.AccessController;
 import java.security.PrivilegedAction;
-
-import com.sun.corba.se.impl.io.IIOPInputStream.ActiveRecursionManager;
+import java.security.PrivilegedExceptionAction;
 
 import com.sun.corba.se.spi.logging.CORBALogDomains;
 import com.sun.corba.se.impl.logging.OMGSystemException;
 import com.sun.corba.se.impl.logging.UtilSystemException;
 
-public class ValueHandlerImpl implements javax.rmi.CORBA.ValueHandlerMultiFormat {
+public final class ValueHandlerImpl implements javax.rmi.CORBA.ValueHandlerMultiFormat {
 
     // Property to override our maximum stream format version
     public static final String FORMAT_VERSION_PROPERTY
@@ -160,12 +150,20 @@ public class ValueHandlerImpl implements javax.rmi.CORBA.ValueHandlerMultiFormat
         writeValueWithVersion(out, value, streamFormatVersion);
     }
 
-    public ValueHandlerImpl(){}
+    private ValueHandlerImpl(){}
 
-    public ValueHandlerImpl(boolean isInputStream) {
+    private ValueHandlerImpl(boolean isInputStream) {
         this();
         useHashtables = false;
         this.isInputStream = isInputStream;
+    }
+
+    static ValueHandlerImpl getInstance() {
+        return new ValueHandlerImpl();
+    }
+
+    static ValueHandlerImpl getInstance(boolean isInputStream) {
+        return new ValueHandlerImpl(isInputStream);
     }
 
     /**
@@ -468,12 +466,7 @@ public class ValueHandlerImpl implements javax.rmi.CORBA.ValueHandlerMultiFormat
         return ObjectStreamClass.lookup(value.getClass()).writeReplace(value);
     }
 
-    /**
-     * Encapsulates writing of Java char arrays so that the 1.3 subclass
-     * can override it without exposing internals across packages.  This
-     * is a fix for bug 4367783.
-     */
-    protected void writeCharArray(org.omg.CORBA_2_3.portable.OutputStream out,
+    private void writeCharArray(org.omg.CORBA_2_3.portable.OutputStream out,
                                 char[] array,
                                 int offset,
                                 int length)
@@ -586,12 +579,7 @@ public class ValueHandlerImpl implements javax.rmi.CORBA.ValueHandlerMultiFormat
         }
     }
 
-    /**
-     * Encapsulates reading of Java char arrays so that the 1.3 subclass
-     * can override it without exposing internals across packages.  This
-     * is a fix for bug 4367783.
-     */
-    protected void readCharArray(org.omg.CORBA_2_3.portable.InputStream in,
+    private void readCharArray(org.omg.CORBA_2_3.portable.InputStream in,
                                  char[] array,
                                  int offset,
                                  int length)
@@ -805,77 +793,134 @@ public class ValueHandlerImpl implements javax.rmi.CORBA.ValueHandlerMultiFormat
         return RepositoryId.cache.getId(repId).isSequence();
     }
 
-    protected String getOutputStreamClassName() {
+    private String getOutputStreamClassName() {
         return "com.sun.corba.se.impl.io.IIOPOutputStream";
     }
 
-    private com.sun.corba.se.impl.io.IIOPOutputStream createOutputStream() {
-        return (com.sun.corba.se.impl.io.IIOPOutputStream)AccessController.doPrivileged(
-            new StreamFactory(getOutputStreamClassName()));
-    }
-
-    protected String getInputStreamClassName() {
-        return "com.sun.corba.se.impl.io.IIOPInputStream";
-    }
-
-    private com.sun.corba.se.impl.io.IIOPInputStream createInputStream() {
-        return (com.sun.corba.se.impl.io.IIOPInputStream)AccessController.doPrivileged(
-            new StreamFactory(getInputStreamClassName()));
+   private IIOPOutputStream createOutputStream() {
+        final String name = getOutputStreamClassName();
+        try {
+             IIOPOutputStream stream = createOutputStreamBuiltIn(name);
+             if (stream != null) {
+                 return stream;
+             }
+             return createCustom(IIOPOutputStream.class, name);
+        } catch (Throwable t) {
+            // Throw exception under the carpet.
+            InternalError ie = new InternalError(
+                "Error loading " + name
+            );
+                ie.initCause(t);
+                throw ie;
+        }
     }
 
     /**
-     * Instantiates a class of the given name using the system ClassLoader
-     * as part of a PrivilegedAction.
-     *
-     * It's private final so hopefully people can't grab it outside of
-     * this class.
-     *
-     * If you're worried that someone could subclass ValueHandlerImpl,
-     * install his own streams, and snoop what's on the wire:
-     * Someone can do that only if he's allowed to use the feature
-     * of installing his own javax.rmi.CORBA.Util delegate (via a
-     * JVM property or orb.properties file, read the first time the
-     * Util class is used).  If he can do that, he can snoop
-     * anything on the wire, anyway, without abusing the
-     * StreamFactory class.
+     * Construct a built in implementation with priveleges.
+     * Returning null indicates a non-built is specified.
      */
-    private static final class StreamFactory implements PrivilegedAction {
-        private String className;
-
-        public StreamFactory (String _className) {
-            className = _className;
+    private IIOPOutputStream createOutputStreamBuiltIn(
+        final String name
+    ) throws Throwable {
+        try {
+            return AccessController.doPrivileged(
+                new PrivilegedExceptionAction<IIOPOutputStream>() {
+                    public IIOPOutputStream run() throws IOException {
+                        return createOutputStreamBuiltInNoPriv(name);
+                    }
+                }
+            );
+        } catch (java.security.PrivilegedActionException exc) {
+            throw exc.getCause();
         }
+    }
 
-        public Object run() {
-            try {
-                // Note: We must use the system ClassLoader here
-                // since we want to load classes outside of the
-                // core JDK when running J2EE Pure ORB and
-                // talking to Kestrel.
+    /**
+     * Returning null indicates a non-built is specified.
+     */
+    private IIOPOutputStream createOutputStreamBuiltInNoPriv(
+        final String name
+    ) throws IOException {
+        return name.equals(IIOPOutputStream.class.getName()) ?
+                new IIOPOutputStream() : null;
+    }
+
+    private String getInputStreamClassName() {
+        return "com.sun.corba.se.impl.io.IIOPInputStream";
+    }
+
+    private IIOPInputStream createInputStream() {
+        final String name = getInputStreamClassName();
+        try {
+             IIOPInputStream stream = createInputStreamBuiltIn(name);
+             if (stream != null) {
+                 return stream;
+             }
+             return createCustom(IIOPInputStream.class, name);
+        } catch (Throwable t) {
+            // Throw exception under the carpet.
+            InternalError ie = new InternalError(
+                "Error loading " + name
+            );
+                ie.initCause(t);
+                throw ie;
+        }
+    }
+
+    /**
+     * Construct a built in implementation with priveleges.
+     * Returning null indicates a non-built is specified.
+     */
+     private IIOPInputStream createInputStreamBuiltIn(
+         final String name
+     ) throws Throwable {
+         try {
+             return AccessController.doPrivileged(
+                 new PrivilegedExceptionAction<IIOPInputStream>() {
+                     public IIOPInputStream run() throws IOException {
+                         return createInputStreamBuiltInNoPriv(name);
+                     }
+                 }
+             );
+         } catch (java.security.PrivilegedActionException exc) {
+             throw exc.getCause();
+         }
+     }
+
+     /**
+      * Returning null indicates a non-built is specified.
+      */
+     private IIOPInputStream createInputStreamBuiltInNoPriv(
+         final String name
+     ) throws IOException {
+         return name.equals(IIOPInputStream.class.getName()) ?
+                new IIOPInputStream() : null;
+     }
+
+     /**
+      * Create a custom implementation without privileges.
+      */
+     private <T> T createCustom(
+         final Class<T> type, final String className
+     ) throws Throwable {
+           // Note: We use the thread context or system ClassLoader here
+           // since we want to load classes outside of the
+           // core JDK when running J2EE Pure ORB and
+           // talking to Kestrel.
                 ClassLoader cl = Thread.currentThread().getContextClassLoader();
                 if (cl == null)
                     cl = ClassLoader.getSystemClassLoader();
 
-                Class streamClass = cl.loadClass(className);
+                Class<?> clazz = cl.loadClass(className);
+                Class<? extends T> streamClass = clazz.asSubclass(type);
 
                 // Since the ClassLoader should cache the class, this isn't
                 // as expensive as it looks.
                 return streamClass.newInstance();
 
-            } catch(Throwable t) {
-                InternalError ie = new InternalError( "Error loading " + className ) ;
-                ie.initCause( t ) ;
-                throw ie ;
-            }
-        }
     }
 
-    /**
-     * Our JDK 1.3 and JDK 1.3.1 behavior subclasses override this.
-     * The correct behavior is for a Java char to map to a CORBA wchar,
-     * but our older code mapped it to a CORBA char.
-     */
-    protected TCKind getJavaCharTCKind() {
+    TCKind getJavaCharTCKind() {
         return TCKind.tk_wchar;
     }
 }

@@ -1,12 +1,12 @@
 /*
- * Copyright 1999-2003 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1999, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Sun designates this
+ * published by the Free Software Foundation.  Oracle designates this
  * particular file as subject to the "Classpath" exception as provided
- * by Sun in the LICENSE file that accompanied this code.
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -18,9 +18,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  */
 /*
  * Licensed Materials - Property of IBM
@@ -35,7 +35,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.ObjectOutputStream;
 import java.io.ObjectOutput;
-import java.util.Hashtable;
+import java.util.Map;
+import java.util.HashMap;
 
 import org.omg.CORBA.INTERNAL;
 
@@ -49,7 +50,7 @@ public abstract class OutputStreamHook extends ObjectOutputStream
      */
     private class HookPutFields extends ObjectOutputStream.PutField
     {
-        private Hashtable fields = new Hashtable();
+        private Map<String,Object> fields = new HashMap<>();
 
         /**
          * Put the value of the named boolean field into the persistent field.
@@ -140,7 +141,6 @@ public abstract class OutputStreamHook extends ObjectOutputStream
     public OutputStreamHook()
         throws java.io.IOException {
         super();
-
     }
 
     public void defaultWriteObject() throws IOException {
@@ -179,7 +179,7 @@ public abstract class OutputStreamHook extends ObjectOutputStream
         putFields.write(this);
     }
 
-    public abstract org.omg.CORBA_2_3.portable.OutputStream getOrbStream();
+    abstract org.omg.CORBA_2_3.portable.OutputStream getOrbStream();
 
     protected abstract void beginOptionalCustomData();
 

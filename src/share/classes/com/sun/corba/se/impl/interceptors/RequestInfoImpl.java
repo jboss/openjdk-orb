@@ -1,12 +1,12 @@
 /*
- * Copyright 2000-2004 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2000, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Sun designates this
+ * published by the Free Software Foundation.  Oracle designates this
  * particular file as subject to the "Classpath" exception as provided
- * by Sun in the LICENSE file that accompanied this code.
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -18,9 +18,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  */
 package com.sun.corba.se.impl.interceptors;
 
@@ -86,12 +86,13 @@ import com.sun.corba.se.impl.encoding.CDRInputStream_1_0;
 import com.sun.corba.se.impl.encoding.EncapsOutputStream;
 
 import com.sun.corba.se.impl.orbutil.ORBUtility;
-import com.sun.corba.se.impl.orbutil.ORBClassLoader;
 
 import com.sun.corba.se.impl.util.RepositoryId;
 
 import com.sun.corba.se.impl.logging.InterceptorsSystemException;
 import com.sun.corba.se.impl.logging.OMGSystemException;
+
+import sun.corba.SharedSecrets;
 
 /**
  * Implementation of the RequestInfo interface as specified in
@@ -187,7 +188,8 @@ public abstract class RequestInfoImpl
         startingPointCall = 0;
         intermediatePointCall = 0;
         endingPointCall = 0;
-        replyStatus = UNINITIALIZED;
+        // 6763340
+        setReplyStatus( UNINITIALIZED ) ;
         currentExecutionPoint = EXECUTION_POINT_STARTING;
         alreadyExecuted = false;
         connection = null;
@@ -451,7 +453,8 @@ public abstract class RequestInfoImpl
 
             // Find the read method on the helper class:
             String helperClassName = className + "Helper";
-            Class helperClass = ORBClassLoader.loadClass( helperClassName );
+            Class<?> helperClass =
+                SharedSecrets.getJavaCorbaAccess().loadClass( helperClassName );
             Class[] readParams = new Class[1];
             readParams[0] = org.omg.CORBA.portable.InputStream.class;
             Method readMethod = helperClass.getMethod( "read", readParams );
@@ -511,7 +514,8 @@ public abstract class RequestInfoImpl
                 Class exceptionClass = userException.getClass();
                 String className = exceptionClass.getName();
                 String helperClassName = className + "Helper";
-                Class helperClass = ORBClassLoader.loadClass( helperClassName );
+                Class<?> helperClass =
+                    SharedSecrets.getJavaCorbaAccess().loadClass( helperClassName );
 
                 // Find insert( Any, class ) method
                 Class[] insertMethodParams = new Class[2];
@@ -655,7 +659,8 @@ public abstract class RequestInfoImpl
             // Convert the "core" service context to an
             // "IOP" ServiceContext by writing it to a
             // CDROutputStream and reading it back.
-            EncapsOutputStream out = new EncapsOutputStream(myORB);
+            EncapsOutputStream out =
+                sun.corba.OutputStreamFactory.newEncapsOutputStream(myORB);
 
             context.write( out, GIOPVersion.V1_2 );
             InputStream inputStream = out.create_input_stream();
@@ -691,8 +696,8 @@ public abstract class RequestInfoImpl
     {
         int id = 0 ;
         // Convert IOP.service_context to core.ServiceContext:
-        EncapsOutputStream outputStream = new EncapsOutputStream(
-            myORB );
+        EncapsOutputStream outputStream =
+           sun.corba.OutputStreamFactory.newEncapsOutputStream(myORB);
         InputStream inputStream = null;
         UnknownServiceContext coreServiceContext = null;
         ServiceContextHelper.write( outputStream, service_context );

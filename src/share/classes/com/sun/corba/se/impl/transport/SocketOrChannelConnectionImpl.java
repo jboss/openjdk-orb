@@ -1,12 +1,12 @@
 /*
- * Copyright 2001-2004 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2001, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Sun designates this
+ * published by the Free Software Foundation.  Oracle designates this
  * particular file as subject to the "Classpath" exception as provided
- * by Sun in the LICENSE file that accompanied this code.
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -18,9 +18,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  */
 
 package com.sun.corba.se.impl.transport;
@@ -811,12 +811,35 @@ public class SocketOrChannelConnectionImpl
                     dprint(".close: " + this, e);
                 }
             }
+            closeConnectionResources();
         } finally {
             if (orb.transportDebugFlag) {
                 dprint(".close<-: " + this);
             }
         }
     }
+
+    public void closeConnectionResources() {
+           if (orb.transportDebugFlag) {
+               dprint(".closeConnectionResources->: " + this);
+           }
+           Selector selector = orb.getTransportManager().getSelector(0);
+           selector.unregisterForEvent(this);
+           try {
+             if (socketChannel != null)
+              socketChannel.close() ;
+                if (socket != null && !socket.isClosed())
+                socket.close() ;
+           } catch (IOException e) {
+             if (orb.transportDebugFlag) {
+                 dprint( ".closeConnectionResources: " + this, e ) ;
+             }
+           }
+           if (orb.transportDebugFlag) {
+               dprint(".closeConnectionResources<-: " + this);
+           }
+     }
+
 
     public Acceptor getAcceptor()
     {
@@ -1057,7 +1080,9 @@ public class SocketOrChannelConnectionImpl
 
             // IIOPOutputStream will cleanup the connection info when it
             // sees this exception.
-            throw wrapper.writeErrorSend(e1) ;
+            SystemException exc = wrapper.writeErrorSend(e1);
+            purgeCalls(exc, false, true);
+            throw exc;
         }
     }
 
@@ -1496,7 +1521,7 @@ public class SocketOrChannelConnectionImpl
             // connection and give them the SystemException;
 
             responseWaitingRoom.signalExceptionToAllWaiters(systemException);
-
+        } finally {
             if (contactInfo != null) {
                 ((OutboundConnectionCache)getConnectionCache()).remove(contactInfo);
             } else if (acceptor != null) {
@@ -1517,7 +1542,6 @@ public class SocketOrChannelConnectionImpl
 
             writeUnlock();
 
-        } finally {
             if (orb.transportDebugFlag) {
                 dprint(".purgeCalls<-: "
                        + minor_code + "/" + die + "/" + lockHeld
@@ -1563,8 +1587,8 @@ public class SocketOrChannelConnectionImpl
     {
         // REVISIT: See comments in CDROutputObject constructor.
         CDROutputObject outputObject =
-            new CDROutputObject((ORB)orb, null, giopVersion, this, msg,
-                                ORBConstants.STREAM_FORMAT_VERSION_1);
+            sun.corba.OutputStreamFactory.newCDROutputObject((ORB)orb, null, giopVersion,
+                                this, msg, ORBConstants.STREAM_FORMAT_VERSION_1);
         msg.write(outputObject);
 
         outputObject.writeTo(this);

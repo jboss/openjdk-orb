@@ -1,12 +1,12 @@
 /*
- * Copyright 2002-2004 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2002, 2009, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Sun designates this
+ * published by the Free Software Foundation.  Oracle designates this
  * particular file as subject to the "Classpath" exception as provided
- * by Sun in the LICENSE file that accompanied this code.
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -18,9 +18,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  */
 
 package com.sun.corba.se.impl.oa.poa ;
@@ -76,6 +76,7 @@ public class POAFactory implements ObjectAdapterFactory
     private ORB orb ;
     private POASystemException wrapper ;
     private OMGSystemException omgWrapper ;
+    private boolean isShuttingDown = false;
 
     public POASystemException getWrapper()
     {
@@ -166,6 +167,7 @@ public class POAFactory implements ObjectAdapterFactory
         // pm.deactivate removes itself from poaManagers!
         Iterator managers = null ;
         synchronized (this) {
+            isShuttingDown = true ;
             managers = (new HashSet(poaManagers)).iterator();
         }
 
@@ -208,9 +210,15 @@ public class POAFactory implements ObjectAdapterFactory
             ClosureFactory.makeFuture( rpClosure ) ) ;
     }
 
+
     public synchronized POA getRootPOA()
     {
         if (rootPOA == null) {
+            // See if we are trying to getRootPOA while shutting down the ORB.
+            if (isShuttingDown) {
+                throw omgWrapper.noObjectAdaptor( ) ;
+            }
+
             try {
                 Object obj = orb.resolve_initial_references(
                     ORBConstants.ROOT_POA_NAME ) ;

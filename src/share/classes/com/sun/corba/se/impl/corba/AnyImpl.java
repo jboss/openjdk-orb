@@ -1,12 +1,12 @@
 /*
- * Copyright 1997-2004 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1997, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Sun designates this
+ * published by the Free Software Foundation.  Oracle designates this
  * particular file as subject to the "Classpath" exception as provided
- * by Sun in the LICENSE file that accompanied this code.
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -18,9 +18,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  */
 /*
  * Licensed Materials - Property of IBM
@@ -33,6 +33,8 @@ package com.sun.corba.se.impl.corba;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.List ;
 import java.util.ArrayList ;
 
@@ -80,11 +82,18 @@ public class AnyImpl extends Any
             super((ORB)orb);
         }
 
-        public org.omg.CORBA.portable.InputStream create_input_stream()
-        {
-            return new AnyInputStream(
-                (com.sun.corba.se.impl.encoding.EncapsInputStream)
-                    super.create_input_stream());
+        public org.omg.CORBA.portable.InputStream create_input_stream() {
+            final org.omg.CORBA.portable.InputStream is = super
+                    .create_input_stream();
+            AnyInputStream aIS = AccessController
+                    .doPrivileged(new PrivilegedAction<AnyInputStream>() {
+                        @Override
+                        public AnyInputStream run() {
+                            return new AnyInputStream(
+                                    (com.sun.corba.se.impl.encoding.EncapsInputStream) is);
+                        }
+                    });
+            return aIS;
         }
     }
 
@@ -504,7 +513,13 @@ public class AnyImpl extends Any
     public org.omg.CORBA.portable.OutputStream create_output_stream()
     {
         //debug.log ("create_output_stream");
-        return new AnyOutputStream(orb);
+        final ORB finalorb = this.orb;
+        return AccessController.doPrivileged(new PrivilegedAction<AnyOutputStream>() {
+            @Override
+            public AnyOutputStream run() {
+                return new AnyOutputStream(finalorb);
+            }
+        });
     }
 
     /**
@@ -572,7 +587,7 @@ public class AnyImpl extends Any
             java.lang.Object[] objholder = new java.lang.Object[1];
             objholder[0] = object;
             long[] longholder = new long[1];
-            TCUtility.unmarshalIn(in, typeCode, longholder, objholder);
+            TCUtility.unmarshalIn(in, realType(), longholder, objholder);
             value = longholder[0];
             object = objholder[0];
             stream = null;
@@ -1218,7 +1233,7 @@ public class AnyImpl extends Any
         // See bug 4391648 for more info about the tcORB in this
         // case.
         RepositoryIdStrings repStrs
-            = RepositoryIdFactory.getRepIdStringsFactory(tcORB);
+            = RepositoryIdFactory.getRepIdStringsFactory();
 
 
         // Assertion: c instanceof Serializable?
@@ -1251,7 +1266,7 @@ public class AnyImpl extends Any
         // Anything else
         // We know that this is a TypeCodeImpl since it is our ORB
         classTC = (TypeCodeImpl)ValueUtility.createTypeCodeForClass(
-            tcORB, c, ORBUtility.createValueHandler(tcORB));
+            tcORB, c, ORBUtility.createValueHandler());
         // Intruct classTC to store its buffer
         classTC.setCaching(true);
         // Update the cache
