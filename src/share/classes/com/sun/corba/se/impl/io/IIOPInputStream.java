@@ -1,12 +1,12 @@
 /*
- * Copyright 1998-2004 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1998, 2015, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Sun designates this
+ * published by the Free Software Foundation.  Oracle designates this
  * particular file as subject to the "Classpath" exception as provided
- * by Sun in the LICENSE file that accompanied this code.
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -18,9 +18,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  */
 /*
  * Licensed Materials - Property of IBM
@@ -300,11 +300,11 @@ public class IIOPInputStream
         resetStream();
     }
 
-    public final void setOrbStream(org.omg.CORBA_2_3.portable.InputStream os) {
+    final void setOrbStream(org.omg.CORBA_2_3.portable.InputStream os) {
         orbStream = os;
     }
 
-    public final org.omg.CORBA_2_3.portable.InputStream getOrbStream() {
+    final org.omg.CORBA_2_3.portable.InputStream getOrbStream() {
         return orbStream;
     }
 
@@ -327,11 +327,11 @@ public class IIOPInputStream
         return (javax.rmi.CORBA.ValueHandler) vhandler;
     }
 
-    public final void increaseRecursionDepth(){
+    final void increaseRecursionDepth(){
         recursionDepth++;
     }
 
-    public final int decreaseRecursionDepth(){
+    final int decreaseRecursionDepth(){
         return --recursionDepth;
     }
 
@@ -370,7 +370,7 @@ public class IIOPInputStream
      * @exception IOException Any of the usual Input/Output related exceptions.
      * @since     JDK1.1
      */
-    public final Object readObjectDelegate() throws IOException
+    public final synchronized Object readObjectDelegate() throws IOException
     {
         try {
 
@@ -389,7 +389,7 @@ public class IIOPInputStream
             }
     }
 
-    final Object simpleReadObject(Class clz,
+    final synchronized Object simpleReadObject(Class clz,
                                   String repositoryID,
                                   com.sun.org.omg.SendingContext.CodeBase sender,
                                   int offset)
@@ -461,7 +461,7 @@ public class IIOPInputStream
         return obj;
     }
 
-    public final void simpleSkipObject(String repositoryID,
+    public final synchronized  void simpleSkipObject(String repositoryID,
                                        com.sun.org.omg.SendingContext.CodeBase sender)
                                        /* throws OptionalDataException, ClassNotFoundException, IOException */
     {
@@ -559,13 +559,18 @@ public class IIOPInputStream
      *              objects.
      * @since     JDK1.1
      */
-    public final void defaultReadObjectDelegate()
+    final synchronized void defaultReadObjectDelegate()
     /* throws IOException, ClassNotFoundException, NotActiveException */
     {
         try {
             if (currentObject == null || currentClassDesc == null)
                 // XXX I18N, logging needed.
                 throw new NotActiveException("defaultReadObjectDelegate");
+
+            if (!currentClassDesc.forClass().isAssignableFrom(
+                    currentObject.getClass())) {
+                throw new IOException("Object Type mismatch");
+            }
 
             // The array will be null unless fields were retrieved
             // remotely because of a serializable version difference.
@@ -988,7 +993,7 @@ public class IIOPInputStream
         }
     }
 
-    private Object inputObject(Class clz,
+    private synchronized Object inputObject(Class clz,
                                String repositoryID,
                                com.sun.org.omg.SendingContext.CodeBase sender,
                                int offset)
@@ -1012,7 +1017,11 @@ public class IIOPInputStream
              * else,
              *  Handle it as a serializable class.
              */
-            if (currentClassDesc.isExternalizable()) {
+            if (Enum.class.isAssignableFrom( clz )) {
+                int ordinal = orbStream.read_long() ;
+                String value = (String)orbStream.read_value( String.class ) ;
+                return Enum.valueOf( clz, value ) ;
+            } else if (currentClassDesc.isExternalizable()) {
                 try {
                     currentObject = (currentClass == null) ?
                         null : currentClassDesc.newInstance();
@@ -1059,6 +1068,9 @@ public class IIOPInputStream
 
             int spBase = spClass;       // current top of stack
 
+            if (currentClass.getName().equals("java.lang.String")) {
+                return this.readUTF();
+            }
             /* The object's classes should be processed from supertype to subtype
              * Push all the clases of the current object onto a stack.
              * Note that only the serializable classes are represented
@@ -1313,7 +1325,7 @@ public class IIOPInputStream
      * a form of custom marshaling.
      *
      */
-    private Object inputObjectUsingFVD(Class clz,
+    private synchronized Object inputObjectUsingFVD(Class clz,
                                        String repositoryID,
                                        com.sun.org.omg.SendingContext.CodeBase sender,
                                        int offset)
@@ -1764,43 +1776,59 @@ public class IIOPInputStream
             switch (field.getTypeCode()) {
                 case 'B':
                     byte byteValue = orbStream.read_octet();
-                    bridge.putByte( o, field.getFieldID(), byteValue ) ;
-                    //reflective code: field.getField().setByte( o, byteValue ) ;
+                    if (field.getField() != null) {
+                        bridge.putByte( o, field.getFieldID(), byteValue ) ;
+                        //reflective code: field.getField().setByte( o, byteValue ) ;
+                    }
                     break;
                 case 'Z':
                     boolean booleanValue = orbStream.read_boolean();
-                    bridge.putBoolean( o, field.getFieldID(), booleanValue ) ;
-                    //reflective code: field.getField().setBoolean( o, booleanValue ) ;
+                    if (field.getField() != null) {
+                        bridge.putBoolean( o, field.getFieldID(), booleanValue ) ;
+                        //reflective code: field.getField().setBoolean( o, booleanValue ) ;
+                    }
                     break;
                 case 'C':
                     char charValue = orbStream.read_wchar();
-                    bridge.putChar( o, field.getFieldID(), charValue ) ;
-                    //reflective code: field.getField().setChar( o, charValue ) ;
+                    if (field.getField() != null) {
+                        bridge.putChar( o, field.getFieldID(), charValue ) ;
+                        //reflective code: field.getField().setChar( o, charValue ) ;
+                    }
                     break;
                 case 'S':
                     short shortValue = orbStream.read_short();
-                    bridge.putShort( o, field.getFieldID(), shortValue ) ;
-                    //reflective code: field.getField().setShort( o, shortValue ) ;
+                    if (field.getField() != null) {
+                        bridge.putShort( o, field.getFieldID(), shortValue ) ;
+                        //reflective code: field.getField().setShort( o, shortValue ) ;
+                    }
                     break;
                 case 'I':
                     int intValue = orbStream.read_long();
-                    bridge.putInt( o, field.getFieldID(), intValue ) ;
-                    //reflective code: field.getField().setInt( o, intValue ) ;
+                    if (field.getField() != null) {
+                        bridge.putInt( o, field.getFieldID(), intValue ) ;
+                        //reflective code: field.getField().setInt( o, intValue ) ;
+                    }
                     break;
                 case 'J':
                     long longValue = orbStream.read_longlong();
-                    bridge.putLong( o, field.getFieldID(), longValue ) ;
-                    //reflective code: field.getField().setLong( o, longValue ) ;
+                    if (field.getField() != null) {
+                        bridge.putLong( o, field.getFieldID(), longValue ) ;
+                        //reflective code: field.getField().setLong( o, longValue ) ;
+                    }
                     break;
                 case 'F' :
                     float floatValue = orbStream.read_float();
-                    bridge.putFloat( o, field.getFieldID(), floatValue ) ;
-                    //reflective code: field.getField().setFloat( o, floatValue ) ;
+                    if (field.getField() != null) {
+                        bridge.putFloat( o, field.getFieldID(), floatValue ) ;
+                        //reflective code: field.getField().setFloat( o, floatValue ) ;
+                    }
                     break;
                 case 'D' :
                     double doubleValue = orbStream.read_double();
-                    bridge.putDouble( o, field.getFieldID(), doubleValue ) ;
-                    //reflective code: field.getField().setDouble( o, doubleValue ) ;
+                    if (field.getField() != null) {
+                        bridge.putDouble( o, field.getFieldID(), doubleValue ) ;
+                        //reflective code: field.getField().setDouble( o, doubleValue ) ;
+                    }
                     break;
                 default:
                     // XXX I18N, logging needed.
@@ -2213,9 +2241,6 @@ public class IIOPInputStream
 
         if (o != null) {
             for (int i = 0; i < primFields; ++i) {
-                if (fields[i].getField() == null)
-                    continue;
-
                 inputPrimitiveField(o, cl, fields[i]);
             }
         }
@@ -2239,6 +2264,31 @@ public class IIOPInputStream
                 }
 
                 try {
+                    Class fieldCl = fields[i].getClazz();
+                    if ((objectValue != null)
+                            && (!fieldCl.isAssignableFrom(
+                                    objectValue.getClass()))) {
+                        throw new IllegalArgumentException("Field mismatch");
+                    }
+                   Field classField = null;
+                    try {
+                        classField = cl.getDeclaredField(fields[i].getName());
+                    } catch (NoSuchFieldException nsfEx) {
+                        throw new IllegalArgumentException(nsfEx);
+                    } catch (SecurityException secEx) {
+                        throw new IllegalArgumentException(secEx.getCause());
+                    }
+                    Class<?> declaredFieldClass = classField.getType();
+
+                    // check input field type is a declared field type
+                    // input field is a subclass of the declared field
+                    if (!declaredFieldClass.isAssignableFrom(fieldCl)) {
+                        throw new IllegalArgumentException(
+                                "Field Type mismatch");
+                    }
+                    if (objectValue != null && !fieldCl.isInstance(objectValue)) {
+                        throw new IllegalArgumentException();
+                    }
                     bridge.putObject( o, fields[i].getFieldID(), objectValue ) ;
                     // reflective code: fields[i].getField().set( o, objectValue ) ;
                 } catch (IllegalArgumentException e) {
@@ -2409,8 +2459,8 @@ public class IIOPInputStream
     private void throwAwayData(ValueMember[] fields,
                                com.sun.org.omg.SendingContext.CodeBase sender)
         throws InvalidClassException, StreamCorruptedException,
-               ClassNotFoundException, IOException
-    {
+               ClassNotFoundException, IOException {
+
         for (int i = 0; i < fields.length; ++i) {
 
             try {
@@ -2545,16 +2595,25 @@ public class IIOPInputStream
 
     }
 
-    private static void setObjectField(Object o, Class c, String fieldName, Object v)
-    {
+    private static void setObjectField(Object o, Class c, String fieldName, Object v) {
         try {
             Field fld = c.getDeclaredField( fieldName ) ;
+            Class fieldCl = fld.getType();
+            if(v != null && !fieldCl.isInstance(v)) {
+                throw new Exception();
+            }
             long key = bridge.objectFieldOffset( fld ) ;
             bridge.putObject( o, key, v ) ;
         } catch (Exception e) {
-            throw utilWrapper.errorSetObjectField( e, fieldName,
-                ObjectUtility.compactObjectToString( o ),
-                ObjectUtility.compactObjectToString( v )) ;
+            if (o != null) {
+                throw utilWrapper.errorSetObjectField( e, fieldName,
+                    o.toString(),
+                    v.toString() ) ;
+            } else {
+                throw utilWrapper.errorSetObjectField( e, fieldName,
+                    "null " + c.getName() + " object",
+                    v.toString() ) ;
+            }
         }
     }
 
@@ -2562,12 +2621,22 @@ public class IIOPInputStream
     {
         try {
             Field fld = c.getDeclaredField( fieldName ) ;
-            long key = bridge.objectFieldOffset( fld ) ;
-            bridge.putBoolean( o, key, v ) ;
+            if ((fld != null) && (fld.getType() == Boolean.TYPE)) {
+                long key = bridge.objectFieldOffset( fld ) ;
+                bridge.putBoolean( o, key, v ) ;
+            } else {
+                throw new InvalidObjectException("Field Type mismatch");
+            }
         } catch (Exception e) {
+            if (o != null) {
             throw utilWrapper.errorSetBooleanField( e, fieldName,
-                ObjectUtility.compactObjectToString( o ),
+                o.toString(),
                 new Boolean(v) ) ;
+            } else {
+                throw utilWrapper.errorSetBooleanField( e, fieldName,
+                    "null " + c.getName() + " object",
+                    new Boolean(v) ) ;
+            }
         }
     }
 
@@ -2575,12 +2644,22 @@ public class IIOPInputStream
     {
         try {
             Field fld = c.getDeclaredField( fieldName ) ;
-            long key = bridge.objectFieldOffset( fld ) ;
-            bridge.putByte( o, key, v ) ;
+            if ((fld != null) && (fld.getType() == Byte.TYPE)) {
+                long key = bridge.objectFieldOffset( fld ) ;
+                bridge.putByte( o, key, v ) ;
+            } else {
+                throw new InvalidObjectException("Field Type mismatch");
+            }
         } catch (Exception e) {
-            throw utilWrapper.errorSetByteField( e, fieldName,
-                ObjectUtility.compactObjectToString( o ),
-                new Byte(v) ) ;
+            if (o != null) {
+                throw utilWrapper.errorSetByteField( e, fieldName,
+                    o.toString(),
+                    new Byte(v) ) ;
+            } else {
+                throw utilWrapper.errorSetByteField( e, fieldName,
+                    "null " + c.getName() + " object",
+                    new Byte(v) ) ;
+            }
         }
     }
 
@@ -2588,12 +2667,22 @@ public class IIOPInputStream
     {
         try {
             Field fld = c.getDeclaredField( fieldName ) ;
-            long key = bridge.objectFieldOffset( fld ) ;
-            bridge.putChar( o, key, v ) ;
+            if ((fld != null) && (fld.getType() == Character.TYPE)) {
+                long key = bridge.objectFieldOffset( fld ) ;
+                bridge.putChar( o, key, v ) ;
+            } else {
+                throw new InvalidObjectException("Field Type mismatch");
+            }
         } catch (Exception e) {
-            throw utilWrapper.errorSetCharField( e, fieldName,
-                ObjectUtility.compactObjectToString( o ),
-                new Character(v) ) ;
+            if (o != null) {
+                throw utilWrapper.errorSetCharField( e, fieldName,
+                    o.toString(),
+                    new Character(v) ) ;
+            } else {
+                throw utilWrapper.errorSetCharField( e, fieldName,
+                    "null " + c.getName() + " object",
+                    new Character(v) ) ;
+            }
         }
     }
 
@@ -2601,12 +2690,22 @@ public class IIOPInputStream
     {
         try {
             Field fld = c.getDeclaredField( fieldName ) ;
-            long key = bridge.objectFieldOffset( fld ) ;
-            bridge.putShort( o, key, v ) ;
+            if ((fld != null) && (fld.getType() == Short.TYPE)) {
+                long key = bridge.objectFieldOffset( fld ) ;
+                bridge.putShort( o, key, v ) ;
+            } else {
+                throw new InvalidObjectException("Field Type mismatch");
+            }
         } catch (Exception e) {
+            if (o != null) {
             throw utilWrapper.errorSetShortField( e, fieldName,
-                ObjectUtility.compactObjectToString( o ),
+                o.toString(),
                 new Short(v) ) ;
+            } else {
+                throw utilWrapper.errorSetShortField( e, fieldName,
+                    "null " + c.getName() + " object",
+                    new Short(v) ) ;
+            }
         }
     }
 
@@ -2614,12 +2713,22 @@ public class IIOPInputStream
     {
         try {
             Field fld = c.getDeclaredField( fieldName ) ;
-            long key = bridge.objectFieldOffset( fld ) ;
-            bridge.putInt( o, key, v ) ;
+            if ((fld != null) && (fld.getType() == Integer.TYPE)) {
+                long key = bridge.objectFieldOffset( fld ) ;
+                bridge.putInt( o, key, v ) ;
+            } else {
+                throw new InvalidObjectException("Field Type mismatch");
+            }
         } catch (Exception e) {
-            throw utilWrapper.errorSetIntField( e, fieldName,
-                ObjectUtility.compactObjectToString( o ),
-                new Integer(v) ) ;
+            if (o != null) {
+                throw utilWrapper.errorSetIntField( e, fieldName,
+                    o.toString(),
+                    new Integer(v) ) ;
+            } else {
+                throw utilWrapper.errorSetIntField( e, fieldName,
+                    "null " + c.getName() + " object",
+                    new Integer(v) ) ;
+            }
         }
     }
 
@@ -2627,12 +2736,22 @@ public class IIOPInputStream
     {
         try {
             Field fld = c.getDeclaredField( fieldName ) ;
-            long key = bridge.objectFieldOffset( fld ) ;
-            bridge.putLong( o, key, v ) ;
+            if ((fld != null) && (fld.getType() == Long.TYPE)) {
+                long key = bridge.objectFieldOffset( fld ) ;
+                bridge.putLong( o, key, v ) ;
+            } else {
+                throw new InvalidObjectException("Field Type mismatch");
+            }
         } catch (Exception e) {
-            throw utilWrapper.errorSetLongField( e, fieldName,
-                ObjectUtility.compactObjectToString( o ),
-                new Long(v) ) ;
+            if (o != null) {
+                throw utilWrapper.errorSetLongField( e, fieldName,
+                    o.toString(),
+                    new Long(v) ) ;
+            } else {
+                throw utilWrapper.errorSetLongField( e, fieldName,
+                    "null " + c.getName() + " object",
+                    new Long(v) ) ;
+            }
         }
     }
 
@@ -2640,12 +2759,22 @@ public class IIOPInputStream
     {
         try {
             Field fld = c.getDeclaredField( fieldName ) ;
-            long key = bridge.objectFieldOffset( fld ) ;
-            bridge.putFloat( o, key, v ) ;
+            if ((fld != null) && (fld.getType() == Float.TYPE)) {
+                long key = bridge.objectFieldOffset( fld ) ;
+                bridge.putFloat( o, key, v ) ;
+            } else {
+                throw new InvalidObjectException("Field Type mismatch");
+            }
         } catch (Exception e) {
-            throw utilWrapper.errorSetFloatField( e, fieldName,
-                ObjectUtility.compactObjectToString( o ),
-                new Float(v) ) ;
+            if (o != null) {
+                throw utilWrapper.errorSetFloatField( e, fieldName,
+                    o.toString(),
+                    new Float(v) ) ;
+            } else {
+                throw utilWrapper.errorSetFloatField( e, fieldName,
+                    "null " + c.getName() + " object",
+                    new Float(v) ) ;
+            }
         }
     }
 
@@ -2653,12 +2782,22 @@ public class IIOPInputStream
     {
         try {
             Field fld = c.getDeclaredField( fieldName ) ;
-            long key = bridge.objectFieldOffset( fld ) ;
-            bridge.putDouble( o, key, v ) ;
+            if ((fld != null) && (fld.getType() == Double.TYPE)) {
+                long key = bridge.objectFieldOffset( fld ) ;
+                bridge.putDouble( o, key, v ) ;
+            } else {
+                throw new InvalidObjectException("Field Type mismatch");
+            }
         } catch (Exception e) {
-            throw utilWrapper.errorSetDoubleField( e, fieldName,
-                ObjectUtility.compactObjectToString( o ),
-                new Double(v) ) ;
+            if (o != null) {
+                throw utilWrapper.errorSetDoubleField( e, fieldName,
+                    o.toString(),
+                    new Double(v) ) ;
+            } else {
+                throw utilWrapper.errorSetDoubleField( e, fieldName,
+                    "null " + c.getName() + " object",
+                    new Double(v) ) ;
+            }
         }
     }
 

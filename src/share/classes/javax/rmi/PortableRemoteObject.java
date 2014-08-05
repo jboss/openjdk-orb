@@ -1,12 +1,12 @@
 /*
- * Copyright 1998-2004 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 1998, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Sun designates this
+ * published by the Free Software Foundation.  Oracle designates this
  * particular file as subject to the "Classpath" exception as provided
- * by Sun in the LICENSE file that accompanied this code.
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -18,9 +18,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  */
 /*
  * Licensed Materials - Property of IBM
@@ -65,17 +65,14 @@ import com.sun.corba.se.impl.orbutil.GetPropertyAction;
  */
 public class PortableRemoteObject {
 
-    private static javax.rmi.CORBA.PortableRemoteObjectDelegate proDelegate = null;
+    private static final javax.rmi.CORBA.PortableRemoteObjectDelegate proDelegate;
 
     private static final String PortableRemoteObjectClassKey =
             "javax.rmi.CORBA.PortableRemoteObjectClass";
 
-    private static final String defaultPortableRemoteObjectImplName =
-            "com.sun.corba.se.impl.javax.rmi.PortableRemoteObject";
-
     static {
         proDelegate = (javax.rmi.CORBA.PortableRemoteObjectDelegate)
-            createDelegateIfSpecified(PortableRemoteObjectClassKey);
+            createDelegate(PortableRemoteObjectClassKey);
     }
 
     /**
@@ -161,7 +158,7 @@ public class PortableRemoteObject {
      * happens implicitly when the object is sent or received as an argument
      * on a remote method call, but in some circumstances it is useful to
      * perform this action by making an explicit call.  See the
-     * {@link Stub#connect} method for more information.
+     * {@link javax.rmi.CORBA.Stub#connect} method for more information.
      * @param target the object to connect.
      * @param source a previously connected object.
      * @throws RemoteException if <code>source</code> is not connected
@@ -181,7 +178,7 @@ public class PortableRemoteObject {
     // are in different packages and the visibility needs to be package for
     // security reasons. If you know a better solution how to share this code
     // then remove it from here.
-    private static Object createDelegateIfSpecified(String classKey) {
+    private static Object createDelegate(String classKey) {
         String className = (String)
             AccessController.doPrivileged(new GetPropertyAction(classKey));
         if (className == null) {
@@ -191,7 +188,7 @@ public class PortableRemoteObject {
             }
         }
         if (className == null) {
-                className = defaultPortableRemoteObjectImplName;
+            return new com.sun.corba.se.impl.javax.rmi.PortableRemoteObject();
         }
 
         try {

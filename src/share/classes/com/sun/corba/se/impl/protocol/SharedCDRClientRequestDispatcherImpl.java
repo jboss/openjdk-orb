@@ -1,12 +1,12 @@
 /*
- * Copyright 2003-2004 Sun Microsystems, Inc.  All Rights Reserved.
+ * Copyright (c) 2003, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 only, as
- * published by the Free Software Foundation.  Sun designates this
+ * published by the Free Software Foundation.  Oracle designates this
  * particular file as subject to the "Classpath" exception as provided
- * by Sun in the LICENSE file that accompanied this code.
+ * by Oracle in the LICENSE file that accompanied this code.
  *
  * This code is distributed in the hope that it will be useful, but WITHOUT
  * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
@@ -18,9 +18,9 @@
  * 2 along with this work; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
  *
- * Please contact Sun Microsystems, Inc., 4150 Network Circle, Santa Clara,
- * CA 95054 USA or visit www.sun.com if you need additional information or
- * have any questions.
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
  */
 
 /*
@@ -36,7 +36,8 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.rmi.RemoteException;
 import java.nio.ByteBuffer;
-
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import javax.rmi.CORBA.Util;
 import javax.rmi.CORBA.Tie;
 
@@ -111,6 +112,7 @@ import com.sun.corba.se.impl.protocol.giopmsgheaders.KeyAddr;
 import com.sun.corba.se.impl.protocol.giopmsgheaders.ProfileAddr;
 import com.sun.corba.se.impl.protocol.giopmsgheaders.ReferenceAddr;
 import com.sun.corba.se.impl.transport.CorbaContactInfoListIteratorImpl;
+import com.sun.corba.se.impl.protocol.giopmsgheaders.Message;
 import com.sun.corba.se.impl.util.JDKBridge;
 
 /**
@@ -156,10 +158,17 @@ public class SharedCDRClientRequestDispatcherImpl
 
         ByteBufferWithInfo bbwi = cdrOutputObject.getByteBufferWithInfo();
         cdrOutputObject.getMessageHeader().setSize(bbwi.byteBuffer, bbwi.getSize());
-
-        CDRInputObject cdrInputObject =
-            new CDRInputObject(orb, null, bbwi.byteBuffer,
-                               cdrOutputObject.getMessageHeader());
+        final ORB inOrb = orb;
+        final ByteBuffer inBuffer = bbwi.byteBuffer;
+        final Message inMsg = cdrOutputObject.getMessageHeader();
+        CDRInputObject cdrInputObject = AccessController
+                .doPrivileged(new PrivilegedAction<CDRInputObject>() {
+                    @Override
+                    public CDRInputObject run() {
+                        return new CDRInputObject(inOrb, null, inBuffer,
+                                inMsg);
+                    }
+                });
         messageMediator.setInputObject(cdrInputObject);
         cdrInputObject.setMessageMediator(messageMediator);
 
@@ -192,9 +201,17 @@ public class SharedCDRClientRequestDispatcherImpl
         cdrOutputObject = (CDROutputObject) messageMediator.getOutputObject();
         bbwi = cdrOutputObject.getByteBufferWithInfo();
         cdrOutputObject.getMessageHeader().setSize(bbwi.byteBuffer, bbwi.getSize());
-        cdrInputObject =
-            new CDRInputObject(orb, null, bbwi.byteBuffer,
-                               cdrOutputObject.getMessageHeader());
+        final ORB inOrb2 = orb;
+        final ByteBuffer inBuffer2 = bbwi.byteBuffer;
+        final Message inMsg2 = cdrOutputObject.getMessageHeader();
+        cdrInputObject = AccessController
+                .doPrivileged(new PrivilegedAction<CDRInputObject>() {
+                    @Override
+                    public CDRInputObject run() {
+                        return new CDRInputObject(inOrb2, null, inBuffer2,
+                                inMsg2);
+                    }
+                });
         messageMediator.setInputObject(cdrInputObject);
         cdrInputObject.setMessageMediator(messageMediator);
 
