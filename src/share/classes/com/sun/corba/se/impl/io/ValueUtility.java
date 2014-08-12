@@ -93,15 +93,15 @@ public class ValueUtility {
         null,       // tk_abstract_interface 32
     };
 
-    static {
+    public static void initializeJavaCorbaAccess() {
         sun.corba.SharedSecrets.setJavaCorbaAccess(new sun.corba.JavaCorbaAccess() {
             public ValueHandlerImpl newValueHandlerImpl() {
                 return ValueHandlerImpl.getInstance();
             }
+
             public Class<?> loadClass(String className) throws ClassNotFoundException {
-                if (Thread.currentThread().getContextClassLoader() != null) {
-                    return Thread.currentThread().getContextClassLoader().
-                        loadClass(className);
+                if (ValueUtility.class.getClassLoader() != null) {
+                    return ValueUtility.class.getClassLoader().loadClass(className);
                 } else {
                     return ClassLoader.getSystemClassLoader().loadClass(className);
                 }
