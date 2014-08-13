@@ -25,16 +25,12 @@
 
 package com.sun.corba.se.impl.transport;
 
-import java.io.IOException;
-
+import com.sun.corba.se.impl.orbutil.ORBUtility;
 import com.sun.corba.se.pept.transport.Acceptor;
 import com.sun.corba.se.pept.transport.ListenerThread;
 import com.sun.corba.se.pept.transport.Selector;
-
 import com.sun.corba.se.spi.orb.ORB;
 import com.sun.corba.se.spi.orbutil.threadpool.Work;
-
-import com.sun.corba.se.impl.orbutil.ORBUtility;
 
 
 public class ListenerThreadImpl
@@ -71,7 +67,7 @@ public class ListenerThreadImpl
         if (orb.transportDebugFlag) {
             dprint(".close: " + acceptor);
         }
-
+        getAcceptor().close();
         keepRunning = false;
     }
 
