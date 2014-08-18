@@ -16,7 +16,23 @@
 
     <name>OpenJDK ORB</name>
 
+    <licenses>
+        <license>
+            <name>gpl</name>
+            <url>http://openjdk.java.net/legal/gplv2+ce.html</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <scm>
+        <connection>scm:git:${openjdk.orb.scm.url}</connection>
+        <developerConnection>scm:git:${openjdk.orb.scm.url}</developerConnection>
+        <url>${openjdk.orb.scm.url}</url>
+    </scm>
+
     <properties>
+        <openjdk.orb.scm.connection>git@github.com:jboss/openjdk-orb.git</openjdk.orb.scm.connection>
+        <openjdk.orb.scm.url>https://github.com/jboss/openjdk-orb</openjdk.orb.scm.url>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <source.code.dir>src/share/classes</source.code.dir>
     </properties>
