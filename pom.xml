@@ -1,5 +1,4 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
@@ -10,7 +9,7 @@
 
     <groupId>org.jboss.openjdk-orb</groupId>
     <artifactId>openjdk-orb</artifactId>
-    <version>8.0.0.Beta1-SNAPSHOT</version>
+    <version>8.0.0.Beta1</version>
     <packaging>jar</packaging>
     <description>JBoss repackaging of the OpenJDK ORB</description>
 
@@ -28,7 +27,8 @@
         <connection>scm:git:${openjdk.orb.scm.url}</connection>
         <developerConnection>scm:git:${openjdk.orb.scm.url}</developerConnection>
         <url>${openjdk.orb.scm.url}</url>
-    </scm>
+      <tag>openjdk-orb-8.0.0.Beta1</tag>
+  </scm>
 
     <properties>
         <openjdk.orb.scm.connection>git@github.com:jboss/openjdk-orb.git</openjdk.orb.scm.connection>
