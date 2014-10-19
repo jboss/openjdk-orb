@@ -241,7 +241,10 @@ public class PortableRemoteObject
                 throw new ClassCastException( "Class " + narrowTo.getName() +
                     " is not a valid remote interface" ) ;
             }
-        } catch(Exception error) {
+        } catch(RuntimeException exception){
+            throw exception;
+        }
+        catch(Exception error) {
             ClassCastException cce = new ClassCastException() ;
             cce.initCause( error ) ;
             throw cce ;
