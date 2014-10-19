@@ -48,14 +48,14 @@ import org.omg.CORBA.portable.ValueFactory;
 import org.omg.CORBA.portable.Streamable;
 import org.omg.CORBA.portable.Delegate;
 
-
 import java.util.Hashtable;
 import java.util.NoSuchElementException;
-
 import java.rmi.Remote;
 import java.rmi.NoSuchObjectException;
 import java.rmi.RemoteException;
 import java.rmi.server.RemoteStub;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 
 import javax.rmi.PortableRemoteObject;
 import javax.rmi.CORBA.Stub;
@@ -69,11 +69,9 @@ import java.io.FileInputStream;
 import org.omg.PortableServer.POA;
 
 import com.sun.org.omg.SendingContext.CodeBase;
-
 import com.sun.corba.se.spi.logging.CORBALogDomains ;
 import com.sun.corba.se.spi.presentation.rmi.PresentationManager;
 import com.sun.corba.se.spi.presentation.rmi.StubAdapter ;
-
 import com.sun.corba.se.impl.logging.UtilSystemException ;
 import com.sun.corba.se.impl.logging.OMGSystemException ;
 
@@ -750,7 +748,7 @@ public final class Utility {
      * Load an RMI-IIOP Stub.  This is used in PortableRemoteObject.narrow.
      */
     public static Object loadStub (org.omg.CORBA.Object narrowFrom,
-                                   Class<?> narrowTo)
+                                   final Class<?> narrowTo)
     {
         Object result = null;
 
@@ -770,11 +768,18 @@ public final class Utility {
                 throw wrapper.classCastExceptionInLoadStub( e ) ;
             }
 
+            ClassLoader classLoader = AccessController.doPrivileged(new PrivilegedAction<ClassLoader>() {
+                @Override
+                public ClassLoader run() {
+                    return narrowTo.getClassLoader();
+                }
+            });
+
             PresentationManager.StubFactoryFactory sff =
                 com.sun.corba.se.spi.orb.ORB.getStubFactoryFactory() ;
             PresentationManager.StubFactory sf = sff.createStubFactory(
                 narrowTo.getName(), false, codebase, narrowTo,
-                narrowTo.getClassLoader() ) ;
+                classLoader) ;
             result = sf.makeStub() ;
             StubAdapter.setDelegate( result,
                 StubAdapter.getDelegate( narrowFrom ) ) ;
