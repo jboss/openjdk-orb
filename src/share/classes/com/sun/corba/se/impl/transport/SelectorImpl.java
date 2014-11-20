@@ -31,7 +31,9 @@ import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.Iterator;
 import java.util.List;
@@ -42,13 +44,11 @@ import com.sun.corba.se.pept.transport.Connection;
 import com.sun.corba.se.pept.transport.EventHandler;
 import com.sun.corba.se.pept.transport.ListenerThread;
 import com.sun.corba.se.pept.transport.ReaderThread;
-
 import com.sun.corba.se.spi.logging.CORBALogDomains;
 import com.sun.corba.se.spi.orb.ORB;
 import com.sun.corba.se.spi.orbutil.threadpool.Work;
 import com.sun.corba.se.spi.orbutil.threadpool.NoSuchThreadPoolException;
 import com.sun.corba.se.spi.orbutil.threadpool.NoSuchWorkQueueException;
-
 import com.sun.corba.se.impl.logging.ORBUtilSystemException;
 import com.sun.corba.se.impl.orbutil.ORBUtility;
 
@@ -69,6 +69,9 @@ class SelectorImpl
     private HashMap listenerThreads;
     private Map readerThreads;
     private boolean selectorStarted;
+
+    private List selectThreadAcceptors;
+
     private volatile boolean closed;
     private ORBUtilSystemException wrapper;
 
@@ -82,7 +85,9 @@ class SelectorImpl
         deferredRegistrations = new ArrayList();
         interestOpsList = new ArrayList();
         listenerThreads = new HashMap();
-        readerThreads = java.util.Collections.synchronizedMap(new HashMap());
+        readerThreads = Collections.synchronizedMap(new HashMap());
+        selectThreadAcceptors=Collections.synchronizedList(new LinkedList());
+
         closed = false;
         wrapper = ORBUtilSystemException.get(orb,CORBALogDomains.RPC_TRANSPORT);
     }
@@ -142,6 +147,7 @@ class SelectorImpl
             synchronized (deferredRegistrations) {
                 deferredRegistrations.add(eventHandler);
             }
+            selectThreadAcceptors.add(eventHandler.getAcceptor());
             if (! selectorStarted) {
                 startSelector();
             }
@@ -186,7 +192,9 @@ class SelectorImpl
             if (selectionKey != null) {
                 selectionKey.cancel();
             }
-            selector.wakeup();
+            if(selector!=null){
+                selector.wakeup();
+            }
             return;
         }
 
@@ -278,6 +286,11 @@ class SelectorImpl
                 }
                 if (closed) {
                     selector.close();
+                    Iterator iterator=selectThreadAcceptors.iterator();
+                    while(iterator.hasNext()){
+                        Acceptor acceptor=(Acceptor)iterator.next();
+                        acceptor.close();
+                    }
                     if (orb.transportDebugFlag) {
                         dprint(".run: closed - .run return");
                     }
