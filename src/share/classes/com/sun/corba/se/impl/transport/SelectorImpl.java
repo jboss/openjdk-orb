@@ -34,7 +34,9 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ClosedSelectorException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.Iterator;
 import java.util.List;
@@ -73,6 +75,9 @@ class SelectorImpl
     private HashMap listenerThreads;
     private Map readerThreads;
     private boolean selectorStarted;
+
+    private List selectThreadAcceptors;
+
     private volatile boolean closed;
     private ORBUtilSystemException wrapper;
 
@@ -86,7 +91,9 @@ class SelectorImpl
         deferredRegistrations = new ArrayList();
         interestOpsList = new ArrayList();
         listenerThreads = new HashMap();
-        readerThreads = java.util.Collections.synchronizedMap(new HashMap());
+        readerThreads = Collections.synchronizedMap(new HashMap());
+        selectThreadAcceptors=Collections.synchronizedList(new LinkedList());
+
         closed = false;
         wrapper = ORBUtilSystemException.get(orb,CORBALogDomains.RPC_TRANSPORT);
     }
@@ -350,6 +357,11 @@ class SelectorImpl
             if (orb.transportDebugFlag) {
                 dprint(".run: selector.close: ", t);
             }
+        }
+        Iterator iterator=selectThreadAcceptors.iterator();
+        while(iterator.hasNext()){
+            Acceptor acceptor=(Acceptor)iterator.next();
+            acceptor.close();
         }
     }
 
