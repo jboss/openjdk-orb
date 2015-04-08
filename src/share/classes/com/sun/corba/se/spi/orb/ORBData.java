@@ -54,7 +54,7 @@ public interface ORBData {
 
     public int getORBServerPort() ;
 
-    public String getListenOnAllInterfaces();
+    public boolean getListenOnAllInterfaces();
 
     public com.sun.corba.se.spi.legacy.connection.ORBSocketFactory getLegacySocketFactory () ;
 

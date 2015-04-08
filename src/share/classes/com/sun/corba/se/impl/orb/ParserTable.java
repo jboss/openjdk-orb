@@ -193,15 +193,6 @@ public class ParserTable {
                 OperationFactory.integerAction(),
                 "ORBServerPort", new Integer( 0 ),
                 new Integer( 38143 ), "38143" ),
-            // NOTE: We are putting SERVER_HOST_NAME configuration info into
-            // DataCollectorBase to avoid a security hole.  However, that forces
-            // us to also set LISTEN_ON_ALL_INTERFACES at the same time.
-            // This all needs to be cleaned up for two reasons: to get configuration
-            // out of DataCollectorBase and to correctly support multihoming.
-            ParserDataFactory.make( ORBConstants.LISTEN_ON_ALL_INTERFACES,
-                OperationFactory.stringAction(),
-                "listenOnAllInterfaces", ORBConstants.LISTEN_ON_ALL_INTERFACES,
-                "foo", "foo" ),
             ParserDataFactory.make( ORBConstants.ORB_ID_PROPERTY,
                 OperationFactory.stringAction(),
                 "orbId", "",

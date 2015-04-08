@@ -60,7 +60,7 @@ public class ORBDataParserImpl extends ParserImplTableBase implements ORBData
     private Integer ORBInitialPort ;
     private String ORBServerHost ;
     private int ORBServerPort ;
-    private String listenOnAllInterfaces;
+    private boolean listenOnAllInterfaces;
     private com.sun.corba.se.spi.legacy.connection.ORBSocketFactory legacySocketFactory ;
     private com.sun.corba.se.spi.transport.ORBSocketFactory socketFactory;
     private USLPort[] userSpecifiedListenPorts ;
@@ -129,7 +129,7 @@ public class ORBDataParserImpl extends ParserImplTableBase implements ORBData
         return ORBServerHost;
     }
 
-    public String getListenOnAllInterfaces()
+    public boolean getListenOnAllInterfaces()
     {
         return listenOnAllInterfaces;
     }
