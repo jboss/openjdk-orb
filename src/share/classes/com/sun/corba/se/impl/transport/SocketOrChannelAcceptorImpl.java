@@ -151,7 +151,7 @@ public class SocketOrChannelAcceptorImpl
         }
         InetSocketAddress inetSocketAddress = null;
         try {
-            if (orb.getORBData().getListenOnAllInterfaces().equals(ORBConstants.LISTEN_ON_ALL_INTERFACES)) {
+            if (orb.getORBData().getListenOnAllInterfaces() == true) {
                 inetSocketAddress = new InetSocketAddress(port);
             } else {
                 String host = orb.getORBData().getORBServerHost();
