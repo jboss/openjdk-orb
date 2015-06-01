@@ -34,7 +34,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.InvocationTargetException;
 
-import java.util.List;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.ArrayList;
@@ -187,7 +186,6 @@ public class ORBImpl extends com.sun.corba.se.spi.orb.ORB
     private SynchVariable     svResponseReceived ;
 
     private java.lang.Object runObj = new java.lang.Object();
-    private List<Thread> runThreads = new LinkedList<>();
     private java.lang.Object shutdownObj = new java.lang.Object();
     private java.lang.Object waitForCompletionObj = new java.lang.Object();
     private static final byte STATUS_OPERATING = 1;
@@ -1237,7 +1235,6 @@ public class ORBImpl extends com.sun.corba.se.spi.orb.ORB
 
         synchronized (runObj) {
             try {
-                runThreads.add(Thread.currentThread());
                 runObj.wait();
             } catch ( InterruptedException ex ) {}
         }
@@ -1303,12 +1300,6 @@ public class ORBImpl extends com.sun.corba.se.spi.orb.ORB
 
                 synchronized (runObj) {
                     runObj.notifyAll();
-                }
-
-                for (Thread runThread : runThreads) {
-                    try {
-                        runThread.join();
-                    } catch (InterruptedException ex) {}
                 }
 
                 status = STATUS_SHUTDOWN;
