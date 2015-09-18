@@ -36,6 +36,9 @@ import com.sun.corba.se.spi.transport.SocketInfo;
 import com.sun.corba.se.impl.orbutil.ORBUtility;
 import com.sun.corba.se.impl.transport.CorbaContactInfoBase;
 
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+
 /**
  * @author Harold Carr
  */
@@ -116,10 +119,18 @@ public class SocketOrChannelContactInfoImpl
 
     public Connection createConnection()
     {
-        Connection connection =
-            new SocketOrChannelConnectionImpl(orb, this,
-                                              socketType, hostname, port);
-        return connection;
+        if(System.getSecurityManager() != null) {
+            return AccessController.doPrivileged(new PrivilegedAction<Connection>() {
+                @Override
+                public Connection run() {
+                    return new SocketOrChannelConnectionImpl(orb, SocketOrChannelContactInfoImpl.this,
+                            socketType, hostname, port);
+                }
+            });
+        } else {
+            return new SocketOrChannelConnectionImpl(orb, this,
+                    socketType, hostname, port);
+        }
     }
 
     ////////////////////////////////////////////////////
