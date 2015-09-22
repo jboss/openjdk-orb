@@ -9,7 +9,7 @@
 
     <groupId>org.jboss.openjdk-orb</groupId>
     <artifactId>openjdk-orb</artifactId>
-    <version>8.0.5.Final</version>
+    <version>8.0.6.Beta1-SNAPSHOT</version>
     <packaging>jar</packaging>
     <description>JBoss repackaging of the OpenJDK ORB</description>
 
@@ -27,7 +27,7 @@
         <connection>scm:git:${openjdk.orb.scm.url}</connection>
         <developerConnection>scm:git:${openjdk.orb.scm.url}</developerConnection>
         <url>${openjdk.orb.scm.url}</url>
-      <tag>openjdk-orb-8.0.5.Final</tag>
+      <tag>HEAD</tag>
   </scm>
 
     <properties>
