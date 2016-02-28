@@ -36,6 +36,7 @@ import com.sun.corba.se.impl.logging.NamingSystemException ;
  *  storing multiple  Host profiles as defined in the CorbaLoc grammer.
  *
  *  @author  Hemanth
+ *  @author <a href="mailto:tadamski@redhat.com">Tomasz Adamski</a>
  */
 public class CorbalocURL extends INSURLBase
 {
@@ -82,12 +83,14 @@ public class CorbalocURL extends INSURLBase
                 String endpointInfo = endpoints.nextToken();
                 IIOPEndpointInfo iiopEndpointInfo = null;
                 if( endpointInfo.startsWith( "iiop:" ) ) {
-                    iiopEndpointInfo = handleIIOPColon( endpointInfo );
-                } else if( endpointInfo.startsWith( "rir:" ) ) {
+                    iiopEndpointInfo = handleColon( endpointInfo, "iiop" );
+                } else if (endpointInfo.startsWith("ssliop:")){
+                    iiopEndpointInfo = handleColon( endpointInfo, "ssliop" );
+                } else if (endpointInfo.startsWith( "rir:" )) {
                     handleRIRColon( endpointInfo );
                     rirFlag = true;
                 } else if( endpointInfo.startsWith( ":" ) ) {
-                    iiopEndpointInfo = handleColon( endpointInfo );
+                    iiopEndpointInfo = handleColon( endpointInfo, "iiop" );
                 } else {
                     // Right now we are not allowing any other protocol
                     // other than iiop:, rir: so raise exception indicating
@@ -123,28 +126,25 @@ public class CorbalocURL extends INSURLBase
     }
 
     /**
-     *  If there is 'iiop:' token in the URL, this method will parses
+     *  If there is 'iiop:' or 'ssliop:' token in the URL, this method will parses
      *  and  validates that host and port information.
      */
-    private IIOPEndpointInfo handleIIOPColon( String iiopInfo )
-    {
-         // Check the iiop syntax
-         iiopInfo = iiopInfo.substring( NamingConstants.IIOP_LENGTH  );
-         return handleColon( iiopInfo );
-    }
-
 
     /**
      * This is to handle the case of host information with no 'iiop:' prefix.
      * instead if ':' is specified then iiop is assumed.
      */
-    private IIOPEndpointInfo handleColon( String iiopInfo ) {
-         // String after ":"
+    private IIOPEndpointInfo handleColon( String iiopInfo, String protocol ) {
+        iiopInfo = iiopInfo.substring( protocol.length() );
+        IIOPEndpointInfo iiopEndpointInfo = new IIOPEndpointInfo();
+        if(protocol.equals( "ssliop" )) {
+            iiopEndpointInfo.setSecured(true);
+        }
+        // String after ":"
          iiopInfo = iiopInfo.substring( 1 );
          String hostandport = iiopInfo;
          // The format can be 1.2@<host>:<port>
          StringTokenizer tokenizer = new StringTokenizer( iiopInfo, "@" );
-         IIOPEndpointInfo iiopEndpointInfo = new IIOPEndpointInfo( );
          int tokenCount = tokenizer.countTokens( );
          // There can be 1 or 2 tokens with '@' as the delimiter
          //  - if there is only 1 token then there is no GIOP version

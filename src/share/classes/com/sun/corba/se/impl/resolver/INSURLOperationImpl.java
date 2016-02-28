@@ -33,18 +33,23 @@ import java.util.HashMap ;
 import java.util.ArrayList ;
 import java.util.Collections ;
 
+import com.sun.corba.se.impl.interceptors.CDREncapsCodec;
+import com.sun.corba.se.spi.ior.TaggedComponentFactoryFinder;
+import org.omg.CORBA.Any;
 import org.omg.CosNaming.NamingContextExt ;
 import org.omg.CosNaming.NamingContextExtHelper ;
 
+import org.omg.IOP.TaggedComponent;
+import org.omg.SSLIOP.SSL;
+import org.omg.SSLIOP.SSLHelper;
+import org.omg.SSLIOP.TAG_SSL_SEC_TRANS;
 import sun.corba.EncapsInputStreamFactory;
 
 import com.sun.corba.se.spi.ior.IOR;
 import com.sun.corba.se.spi.ior.IORTemplate;
 import com.sun.corba.se.spi.ior.ObjectKey;
 import com.sun.corba.se.spi.ior.IORFactories;
-import com.sun.corba.se.spi.ior.ObjectKeyFactory ;
 import com.sun.corba.se.spi.ior.iiop.IIOPAddress;
-import com.sun.corba.se.spi.ior.iiop.IIOPProfile ;
 import com.sun.corba.se.spi.ior.iiop.IIOPProfileTemplate ;
 import com.sun.corba.se.spi.ior.iiop.IIOPFactories ;
 import com.sun.corba.se.spi.ior.iiop.GIOPVersion;
@@ -74,6 +79,7 @@ import com.sun.corba.se.impl.orbutil.ORBUtility;
  *
  * @author  Hemanth
  * @author  Ken
+ * @author <a href="mailto:tadamski@redhat.com">Tomasz Adamski</a>
  */
 public class INSURLOperationImpl implements Operation
 {
@@ -256,6 +262,10 @@ public class INSURLOperationImpl implements Operation
                     profileTemplate.add(iiopAddressComponent);
                 }
             }
+
+            if ( element.isSecured() ) {
+                createSSLTaggedComponent( profileTemplate, element.getPort() );
+            }
         }
 
         GIOPVersion giopVersion = orb.getORBData().getGIOPVersion();
@@ -291,6 +301,37 @@ public class INSURLOperationImpl implements Operation
         IOR ior = iortemp.makeIOR( orb, "", key.getId() ) ;
         return ORBUtility.makeObjectReference( ior ) ;
     }
+
+    private void createSSLTaggedComponent(IIOPProfileTemplate profileTemplate, int port)
+    {
+        SSL ssl = new SSL();
+        ssl.port = (short) port;
+        //FIXME
+        ssl.target_supports = 0;
+        ssl.target_requires = 0;
+
+        GIOPVersion giopVersion = orb.getORBData().getGIOPVersion();
+        CDREncapsCodec codec = new CDREncapsCodec(orb, giopVersion.getMajor(),giopVersion.getMinor());
+
+        Any any = orb.create_any();
+        SSLHelper.insert(any, ssl);
+        byte[] componentData = new byte[0];
+
+        //FIXME
+        try {
+            componentData = codec.encode_value(any);
+        } catch (Exception ignored) {
+        }
+
+        TaggedComponent sslTaggedComponent = new TaggedComponent(TAG_SSL_SEC_TRANS.value, componentData);
+
+        TaggedComponentFactoryFinder finder =
+                orb.getTaggedComponentFactoryFinder();
+        Object newTaggedComponent = finder.create( orb, sslTaggedComponent);
+
+        profileTemplate.add(newTaggedComponent);
+    }
+
 
     /**
      *  This is required for corbaname: resolution. Currently we
