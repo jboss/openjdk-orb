@@ -26,6 +26,7 @@
 package com.sun.corba.se.impl.naming.namingutil;
 
 import com.sun.corba.se.impl.orbutil.ORBConstants;
+import com.sun.corba.se.spi.transport.SocketInfo;
 
 /**
  *  EndpointInfo is used internally by CorbaLoc object to store the
@@ -33,6 +34,7 @@ import com.sun.corba.se.impl.orbutil.ORBConstants;
  *  from the -ORBInitDef and -ORBDefaultInitDef definitions.
  *
  *  @Author Hemanth
+ *  @author <a href="mailto:tadamski@redhat.com">Tomasz Adamski</a>
  */
 public class IIOPEndpointInfo
 {
@@ -43,14 +45,23 @@ public class IIOPEndpointInfo
     private String host;
     private int port;
 
+    //True if secured connection must be used
+    private boolean secured;
+
     IIOPEndpointInfo( ) {
         // Default IIOP Version
         major = ORBConstants.DEFAULT_INS_GIOP_MAJOR_VERSION;
         minor = ORBConstants.DEFAULT_INS_GIOP_MINOR_VERSION;
+
         // Default host is localhost
         host = ORBConstants.DEFAULT_INS_HOST;
         // Default INS Port
         port = ORBConstants.DEFAULT_INS_PORT;
+
+        // By default connection is insecured
+        secured = false;
+
+
     }
 
     public void setHost( String theHost ) {
@@ -67,6 +78,14 @@ public class IIOPEndpointInfo
 
     public int getPort( ) {
         return port;
+    }
+
+    public void setSecured(boolean secured) {
+        this.secured = secured;
+    }
+
+    public boolean isSecured() {
+        return secured;
     }
 
     public void setVersion( int theMajor, int theMinor ) {
@@ -88,5 +107,6 @@ public class IIOPEndpointInfo
         System.out.println( " Major -> " + major + " Minor -> " + minor );
         System.out.println( "host -> " + host );
         System.out.println( "port -> " + port );
+        System.out.println( "secured -> " + secured);
     }
 }
