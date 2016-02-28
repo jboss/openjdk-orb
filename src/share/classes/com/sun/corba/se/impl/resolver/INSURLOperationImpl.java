@@ -33,18 +33,31 @@ import java.util.HashMap ;
 import java.util.ArrayList ;
 import java.util.Collections ;
 
+import com.sun.corba.se.impl.interceptors.CDREncapsCodec;
+import com.sun.corba.se.spi.ior.TaggedComponentFactoryFinder;
+import org.omg.CORBA.Any;
+import org.omg.CORBA.UserException;
+import org.omg.CSIIOP.Confidentiality;
+import org.omg.CSIIOP.DetectMisordering;
+import org.omg.CSIIOP.DetectReplay;
+import org.omg.CSIIOP.EstablishTrustInClient;
+import org.omg.CSIIOP.EstablishTrustInTarget;
+import org.omg.CSIIOP.Integrity;
 import org.omg.CosNaming.NamingContextExt ;
 import org.omg.CosNaming.NamingContextExtHelper ;
 
+import org.omg.IOP.CodecPackage.InvalidTypeForEncoding;
+import org.omg.IOP.TaggedComponent;
+import org.omg.SSLIOP.SSL;
+import org.omg.SSLIOP.SSLHelper;
+import org.omg.SSLIOP.TAG_SSL_SEC_TRANS;
 import sun.corba.EncapsInputStreamFactory;
 
 import com.sun.corba.se.spi.ior.IOR;
 import com.sun.corba.se.spi.ior.IORTemplate;
 import com.sun.corba.se.spi.ior.ObjectKey;
 import com.sun.corba.se.spi.ior.IORFactories;
-import com.sun.corba.se.spi.ior.ObjectKeyFactory ;
 import com.sun.corba.se.spi.ior.iiop.IIOPAddress;
-import com.sun.corba.se.spi.ior.iiop.IIOPProfile ;
 import com.sun.corba.se.spi.ior.iiop.IIOPProfileTemplate ;
 import com.sun.corba.se.spi.ior.iiop.IIOPFactories ;
 import com.sun.corba.se.spi.ior.iiop.GIOPVersion;
@@ -74,6 +87,7 @@ import com.sun.corba.se.impl.orbutil.ORBUtility;
  *
  * @author  Hemanth
  * @author  Ken
+ * @author <a href="mailto:tadamski@redhat.com">Tomasz Adamski</a>
  */
 public class INSURLOperationImpl implements Operation
 {
@@ -158,15 +172,20 @@ public class INSURLOperationImpl implements Operation
     private org.omg.CORBA.Object resolveCorbaloc(
         CorbalocURL theCorbaLocObject )
     {
-        org.omg.CORBA.Object result = null;
-        // If RIR flag is true use the Bootstrap protocol
-        if( theCorbaLocObject.getRIRFlag( ) )  {
-            result = rirResolver.resolve(theCorbaLocObject.getKeyString());
-        } else {
-            result = getIORUsingCorbaloc( theCorbaLocObject );
-        }
+        try {
+            org.omg.CORBA.Object result = null;
+            // If RIR flag is true use the Bootstrap protocol
+            if (theCorbaLocObject.getRIRFlag()) {
+                result = rirResolver.resolve(theCorbaLocObject.getKeyString());
+            } else {
+                result = getIORUsingCorbaloc(theCorbaLocObject);
+            }
 
-        return result;
+            return result;
+        } catch(Exception e){
+            clearRootNamingContextCache( );
+            return null;
+        }
     }
 
     /**
@@ -214,7 +233,7 @@ public class INSURLOperationImpl implements Operation
      *
      *  @return the CORBA.Object if resolution is successful
      */
-     private org.omg.CORBA.Object getIORUsingCorbaloc( INSURL corbalocObject )
+     private org.omg.CORBA.Object getIORUsingCorbaloc( INSURL corbalocObject ) throws UserException
      {
         Map     profileMap = new HashMap();
         List    profileList1_0 = new ArrayList();
@@ -256,6 +275,10 @@ public class INSURLOperationImpl implements Operation
                     profileTemplate.add(iiopAddressComponent);
                 }
             }
+
+            if ( element.isSecured() ) {
+                createSSLTaggedComponent( profileTemplate, element.getPort() );
+            }
         }
 
         GIOPVersion giopVersion = orb.getORBData().getGIOPVersion();
@@ -291,6 +314,33 @@ public class INSURLOperationImpl implements Operation
         IOR ior = iortemp.makeIOR( orb, "", key.getId() ) ;
         return ORBUtility.makeObjectReference( ior ) ;
     }
+
+    private void createSSLTaggedComponent(IIOPProfileTemplate profileTemplate, int port) throws UserException
+    {
+        SSL ssl = new SSL();
+        ssl.port = (short) port;
+
+        short sslOptions = Integrity.value | Confidentiality.value | DetectMisordering.value | DetectReplay.value
+                | EstablishTrustInTarget.value | EstablishTrustInClient.value;
+        ssl.target_supports = sslOptions;
+        ssl.target_requires = sslOptions;
+
+        GIOPVersion giopVersion = orb.getORBData().getGIOPVersion();
+        CDREncapsCodec codec = new CDREncapsCodec(orb, giopVersion.getMajor(),giopVersion.getMinor());
+
+        Any any = orb.create_any();
+        SSLHelper.insert(any, ssl);
+        byte[] componentData = codec.encode_value(any);
+
+        TaggedComponent sslTaggedComponent = new TaggedComponent(TAG_SSL_SEC_TRANS.value, componentData);
+
+        TaggedComponentFactoryFinder finder =
+                orb.getTaggedComponentFactoryFinder();
+        Object newTaggedComponent = finder.create( orb, sslTaggedComponent);
+
+        profileTemplate.add(newTaggedComponent);
+    }
+
 
     /**
      *  This is required for corbaname: resolution. Currently we
