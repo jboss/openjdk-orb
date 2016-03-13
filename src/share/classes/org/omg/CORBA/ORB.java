@@ -36,7 +36,7 @@ import java.io.FileInputStream;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 
-//import sun.reflect.misc.ReflectUtil;
+import sun.reflect.misc.ReflectUtil;
 
 /**
  * A class providing APIs for the CORBA Object Request Broker
@@ -303,7 +303,7 @@ abstract public class ORB {
             cl = ClassLoader.getSystemClassLoader();
 
         try {
-            //ReflectUtil.checkPackageAccess(className);
+            ReflectUtil.checkPackageAccess(className);
             Class<org.omg.CORBA.ORB> orbBaseClass = org.omg.CORBA.ORB.class;
             Class<?> orbClass = Class.forName(className, true, cl).asSubclass(orbBaseClass);
             return (ORB)orbClass.newInstance();
