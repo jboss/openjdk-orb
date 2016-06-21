@@ -27,7 +27,6 @@
         <connection>scm:git:${openjdk.orb.scm.url}</connection>
         <developerConnection>scm:git:${openjdk.orb.scm.url}</developerConnection>
         <url>${openjdk.orb.scm.url}</url>
-      <tag>HEAD</tag>
   </scm>
 
     <properties>
