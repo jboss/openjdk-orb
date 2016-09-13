@@ -151,8 +151,8 @@ public final class Bridge
     {
         latestUserDefinedLoaderMethod = getLatestUserDefinedLoaderMethod();
         unsafe = getUnsafe() ;
-        reflectionFactory = (ReflectionFactory)AccessController.doPrivileged(
-            new ReflectionFactory.GetReflectionFactoryAction());
+        reflectionFactory = AccessController.doPrivileged(
+            (PrivilegedAction<ReflectionFactory>)ReflectionFactory::getReflectionFactory);
     }
 
     /** Fetch the Bridge singleton.  This requires the following
