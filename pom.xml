@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.jboss</groupId>
         <artifactId>jboss-parent</artifactId>
-        <version>20</version>
+        <version>23</version>
     </parent>
 
     <groupId>org.jboss.openjdk-orb</groupId>
@@ -35,6 +35,7 @@
         <openjdk.orb.scm.url>https://github.com/jboss/openjdk-orb</openjdk.orb.scm.url>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <source.code.dir>src/share/classes</source.code.dir>
+        <generate.loggers.script>logutil/generate_loggers.sh</generate.loggers.script>
     </properties>
 
     <dependencies>
@@ -50,6 +51,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>idlj-maven-plugin</artifactId>
+                <version>1.2.2</version>
                 <executions>
                     <execution>
                         <goals>
@@ -169,7 +171,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <executable>logutil/generate_loggers.sh</executable>
+                    <executable>${generate.loggers.script}</executable>
                     <environmentVariables>
                         <JAVA_HOME>${java.home}</JAVA_HOME>
                         <BASE_DIR>${basedir}</BASE_DIR>
@@ -207,4 +209,17 @@
             </resource>
         </resources>
     </build>
+    <profiles>
+        <profile>
+            <id>windows</id>
+            <activation>
+                <os>
+                    <family>windows</family>
+                </os>
+            </activation>
+            <properties>
+                <generate.loggers.script>logutil/generate_loggers.bat</generate.loggers.script>
+            </properties>
+        </profile>
+    </profiles>
 </project>
