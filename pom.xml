@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.jboss</groupId>
         <artifactId>jboss-parent</artifactId>
-        <version>20</version>
+        <version>23</version>
     </parent>
 
     <groupId>org.jboss.openjdk-orb</groupId>
@@ -24,17 +24,24 @@
     </licenses>
 
     <scm>
-        <connection>scm:git:${openjdk.orb.scm.url}</connection>
-        <developerConnection>scm:git:${openjdk.orb.scm.url}</developerConnection>
-        <url>${openjdk.orb.scm.url}</url>
+        <connection>scm:git:https://github.com/jboss/openjdk-orb.git</connection>
+        <developerConnection>scm:git:https://github.com/jboss/openjdk-orb.git</developerConnection>
+        <url>https://github.com/jboss/openjdk-orb</url>
         <tag>HEAD</tag>
   </scm>
 
     <properties>
-        <openjdk.orb.scm.connection>git@github.com:jboss/openjdk-orb.git</openjdk.orb.scm.connection>
-        <openjdk.orb.scm.url>https://github.com/jboss/openjdk-orb</openjdk.orb.scm.url>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <source.code.dir>src/share/classes</source.code.dir>
+        <generate.loggers.script>logutil/generate_loggers.sh</generate.loggers.script>
+        <version.idl.plugin>1.2.2</version.idl.plugin>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <!-- We need java 9 to make multi release jar build-->
+        <jdk.min.version>9</jdk.min.version>
+
+        <java9.sourceDirectory>${project.basedir}/src/main/java9</java9.sourceDirectory>
+        <java9.build.outputDirectory>${project.build.outputDirectory}/META-INF/versions/9</java9.build.outputDirectory>
     </properties>
 
     <dependencies>
@@ -50,6 +57,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>idlj-maven-plugin</artifactId>
+                <version>${version.idl.plugin}</version>
                 <executions>
                     <execution>
                         <goals>
@@ -169,7 +177,7 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <executable>logutil/generate_loggers.sh</executable>
+                    <executable>${generate.loggers.script}</executable>
                     <environmentVariables>
                         <JAVA_HOME>${java.home}</JAVA_HOME>
                         <BASE_DIR>${basedir}</BASE_DIR>
@@ -197,6 +205,46 @@
                     </execution>
                 </executions>
             </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                   <!-- <release>8</release>-->
+                    <compilerArgument>-J--add-modules=jdk.unsupported</compilerArgument>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>compile-java9</id>
+                        <phase>compile</phase>
+                        <configuration>
+                            <tasks>
+                                <mkdir dir="${java9.build.outputDirectory}"/>
+                                <javac srcdir="${java9.sourceDirectory}" destdir="${java9.build.outputDirectory}"
+                                       classpath="${project.build.outputDirectory}" includeantruntime="false" />
+                            </tasks>
+                        </configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifestEntries>
+                            <Multi-Release>true</Multi-Release>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
         </plugins>
         <resources>
             <resource>
@@ -207,4 +255,17 @@
             </resource>
         </resources>
     </build>
+    <profiles>
+        <profile>
+            <id>windows</id>
+            <activation>
+                <os>
+                    <family>windows</family>
+                </os>
+            </activation>
+            <properties>
+                <generate.loggers.script>logutil/generate_loggers.bat</generate.loggers.script>
+            </properties>
+        </profile>
+    </profiles>
 </project>

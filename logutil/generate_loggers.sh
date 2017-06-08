@@ -1,8 +1,8 @@
 #!/bin/sh
 
-JAVA=${JAVA_HOME}/../bin/java
-JAVAC=${JAVA_HOME}/../bin/javac
-JAR=${JAVA_HOME}/../bin/jar
+JAVA=${JAVA_HOME}/bin/java
+JAVAC=${JAVA_HOME}/bin/javac
+JAR=${JAVA_HOME}/bin/jar
 
 LOGUTIL_PACKAGE=com/sun/tools/corba/se/logutil
 LOGUTIL_SRC_DIR=${SOURCE_DIR}/${LOGUTIL_PACKAGE}
