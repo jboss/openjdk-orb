@@ -253,6 +253,13 @@
                     <include>**/*.properties</include>
                 </includes>
             </resource>
+            <resource>
+                <directory>src/main/java9</directory>
+                <includes>
+                    <include>**/*.properties</include>
+                </includes>
+                <targetPath>${java9.build.outputDirectory}</targetPath>
+            </resource>
         </resources>
     </build>
     <profiles>
