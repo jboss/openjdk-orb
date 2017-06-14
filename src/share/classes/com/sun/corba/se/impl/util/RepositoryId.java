@@ -31,6 +31,9 @@
 
 package com.sun.corba.se.impl.util;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.StringTokenizer;
 import java.util.Hashtable;
 import java.io.IOException;
@@ -346,9 +349,9 @@ public class RepositoryId {
                     repId.substring(kIDLPrefixLength, repId.indexOf(':', kIDLPrefixLength));
                 isIDLType = true;
 
-                if (typeString.startsWith(kIDLNamePrefix))
-                    completeClassName = kIDLClassnamePrefix +
-                        typeString.substring(kIDLNamePrefix.length()).replace('/','.');
+                if (isIDLType)
+                    completeClassName = rerverseClassnamePrefix(typeString.substring(0,typeString.indexOf("/"))) + "." +
+                        typeString.substring(typeString.indexOf("/")+1).replace('/','.');
                 else
                     completeClassName = typeString.replace('/','.');
 
@@ -383,6 +386,12 @@ public class RepositoryId {
 
             return this;
         }
+    }
+
+    private String rerverseClassnamePrefix(final String prefix) {
+        final List<String> components = Arrays.asList(prefix.split("\\."));
+        Collections.reverse(components);
+        return String.join(".",  components);
     }
 
     public final String getUnqualifiedName() {
