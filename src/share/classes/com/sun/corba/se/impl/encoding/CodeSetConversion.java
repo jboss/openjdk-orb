@@ -199,7 +199,7 @@ public class CodeSetConversion
         }
 
         public void convert(char chToConvert) {
-            if (chars == null)
+            if (chars == null || chars.length == 0)
                 chars = new char[1];
 
             // The CharToByteConverter only takes a char[]
