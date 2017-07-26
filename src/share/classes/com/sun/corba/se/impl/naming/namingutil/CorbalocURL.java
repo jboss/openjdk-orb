@@ -171,7 +171,7 @@ public class CorbalocURL extends INSURLBase
                 iiopEndpointInfo.setVersion(
                     Integer.parseInt( version.substring( 0, dot )),
                     Integer.parseInt( version.substring(dot+1)) );
-                hostandport = tokenizer.nextToken( );
+                hostandport = tokenizer.nextToken( ).substring(1);
             } catch( Throwable e ) {
                 badAddress( e );
             }
