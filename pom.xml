@@ -50,6 +50,15 @@
             <artifactId>openjdk-orb-jdk9-supplement</artifactId>
             <version>1.0.1.Final</version>
             <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.jboss.openjdk-orb</groupId>
+            <artifactId>openjdk-orb-jdk9-supplement</artifactId>
+            <version>1.0.1.Final</version>
+            <scope>provided</scope>
+            <optional>true</optional>
+            <classifier>sources</classifier>
         </dependency>
     </dependencies>
 
@@ -225,9 +234,9 @@
                         </goals>
                         <configuration>
                             <includeGroupIds>org.jboss.openjdk-orb</includeGroupIds>
-                            <includeArtifactIds>openjdk-orb-jdk9-supplement</includeArtifactIds>
+                            <includeArtifactIds>openjdk-orb-jdk9-supplement,openjdk-orb-jdk9-supplement-sources</includeArtifactIds>
                             <excludeTransitive>true</excludeTransitive>
-                            <includes>**/*.class,**/*.properties</includes>
+                            <includes>**/*.class,**/*.properties,**/*.java</includes>
                             <outputDirectory>${project.build.directory}/generated-resources/META-INF/versions/9</outputDirectory>
                         </configuration>
                     </execution>
@@ -243,6 +252,14 @@
                             <Multi-Release>true</Multi-Release>
                         </manifestEntries>
                     </archive>
+                    <excludes>**/*.java</excludes>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <configuration>
+                    <excludes>**/*.class</excludes>
                 </configuration>
             </plugin>
         </plugins>
