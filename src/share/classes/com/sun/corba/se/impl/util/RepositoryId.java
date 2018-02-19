@@ -349,9 +349,12 @@ public class RepositoryId {
                     repId.substring(kIDLPrefixLength, repId.indexOf(':', kIDLPrefixLength));
                 isIDLType = true;
 
-                if (isIDLType)
-                    completeClassName = rerverseClassnamePrefix(typeString.substring(0,typeString.indexOf("/"))) + "." +
-                        typeString.substring(typeString.indexOf("/")+1).replace('/','.');
+                final int slashIndex = typeString.indexOf("/");
+                if (slashIndex == -1)
+               	 completeClassName = typeString;
+                else if (isIDLType)
+                    completeClassName = rerverseClassnamePrefix(typeString.substring(0,slashIndex)) + "." +
+                        typeString.substring(slashIndex+1).replace('/','.');
                 else
                     completeClassName = typeString.replace('/','.');
 
