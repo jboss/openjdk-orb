@@ -260,7 +260,7 @@ public class SocketOrChannelAcceptorImpl
             // will be no events on this connection then it could be reclaimed
             // by upcoming reclaim() call.
             getConnectionCache().stampTime(connection);
-            getConnectionCache().put(this, connection);
+            getConnectionCache().add(connection);
 
             if (connection.shouldRegisterServerReadEvent()) {
                 Selector selector = orb.getTransportManager().getSelector(0);

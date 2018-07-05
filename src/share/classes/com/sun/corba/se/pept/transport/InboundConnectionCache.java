@@ -25,19 +25,22 @@
 
 package com.sun.corba.se.pept.transport;
 
+import java.util.Collection;
+
 /**
  * @author Harold Carr
  */
 public interface InboundConnectionCache
     extends ConnectionCache
 {
-    public Connection get(Acceptor acceptor); // REVISIT
 
-    public void put(Acceptor acceptor, Connection connection);
+    public void add(Connection connection);
 
     public void remove(Connection connection);
 
-    public Acceptor getAcceptor();
+    public void registerAcceptor(Acceptor acceptor);
+
+    public Collection<Acceptor> getAcceptors();
 }
 
 // End of file.
