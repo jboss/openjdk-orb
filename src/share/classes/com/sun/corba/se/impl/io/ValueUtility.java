@@ -101,7 +101,11 @@ public class ValueUtility {
 
             public Class<?> loadClass(String className) throws ClassNotFoundException {
                 if (ValueUtility.class.getClassLoader() != null) {
-                    return ValueUtility.class.getClassLoader().loadClass(className);
+                    try {
+                        return ValueUtility.class.getClassLoader().loadClass(className);
+		    } catch (ClassNotFoundException e) {
+                        return ClassLoader.getSystemClassLoader().loadClass(className);
+		    }
                 } else {
                     return ClassLoader.getSystemClassLoader().loadClass(className);
                 }
