@@ -48,7 +48,7 @@
         <dependency>
             <groupId>org.jboss.openjdk-orb</groupId>
             <artifactId>openjdk-orb-jdk9-supplement</artifactId>
-            <version>1.0.2.Final</version>
+            <version>1.0.3.Final</version>
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
