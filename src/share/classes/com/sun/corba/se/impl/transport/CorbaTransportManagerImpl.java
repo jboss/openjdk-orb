@@ -25,17 +25,12 @@
 
 package com.sun.corba.se.impl.transport;
 
-import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-
-import org.omg.CORBA.INITIALIZE;
-import org.omg.CORBA.INTERNAL;
-import org.omg.CORBA.CompletionStatus;
 
 import com.sun.corba.se.pept.transport.Acceptor;
 import com.sun.corba.se.pept.transport.ConnectionCache;
@@ -50,12 +45,11 @@ import com.sun.corba.se.spi.ior.ObjectAdapterId;
 import com.sun.corba.se.spi.orb.ORB;
 import com.sun.corba.se.spi.transport.CorbaAcceptor;
 import com.sun.corba.se.spi.transport.CorbaTransportManager;
-import com.sun.corba.se.pept.transport.Connection;
-import com.sun.corba.se.pept.transport.ConnectionCache;
 
 // REVISIT - impl/poa specific:
 import com.sun.corba.se.impl.oa.poa.Policies;
 import com.sun.corba.se.impl.orbutil.ORBUtility;
+import org.wildfly.orb.impl.transport.CorbaInboundConnectionCacheImpl;
 
 /**
  * @author Harold Carr
@@ -142,6 +136,7 @@ public class CorbaTransportManagerImpl
                             connectionCache);
                     }
                 }
+                ((CorbaInboundConnectionCacheImpl)connectionCache).registerAcceptor(acceptor);
                 acceptor.setConnectionCache(connectionCache);
             }
             return acceptor.getConnectionCache();
@@ -189,8 +184,11 @@ public class CorbaTransportManagerImpl
                 ((ConnectionCache)cc).close() ;
             }
             for (Object icc : inboundConnectionCaches.values()) {
-                ((ConnectionCache)icc).close() ;
-                unregisterAcceptor(((InboundConnectionCache)icc).getAcceptor());
+                ((ConnectionCache) icc).close();
+                for (Acceptor acceptor : ((CorbaInboundConnectionCacheImpl) icc).getAcceptors()) {
+                    unregisterAcceptor(acceptor);
+                }
+
             }
             getSelector(0).close();
         } finally {
