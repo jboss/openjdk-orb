@@ -136,13 +136,12 @@ public class CorbaTransportManagerImpl
                         // the connection cache type used.
                         connectionCache =
                             new CorbaInboundConnectionCacheImpl(orb,
-                                    acceptor.getConnectionCacheType(), ((CorbaAcceptor)acceptor).getMonitoringName());
+                                                                acceptor);
                         inboundConnectionCaches.put(
                             acceptor.getConnectionCacheType(),
                             connectionCache);
                     }
                 }
-                connectionCache.registerAcceptor(acceptor);
                 acceptor.setConnectionCache(connectionCache);
             }
             return acceptor.getConnectionCache();
@@ -191,9 +190,7 @@ public class CorbaTransportManagerImpl
             }
             for (Object icc : inboundConnectionCaches.values()) {
                 ((ConnectionCache)icc).close() ;
-                for(Acceptor acceptor: ((InboundConnectionCache)icc).getAcceptors()){
-                    unregisterAcceptor(acceptor);
-                }
+                unregisterAcceptor(((InboundConnectionCache)icc).getAcceptor());
             }
             getSelector(0).close();
         } finally {

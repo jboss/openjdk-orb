@@ -27,7 +27,6 @@ package com.sun.corba.se.impl.transport;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 
 import com.sun.corba.se.pept.transport.Acceptor;
 import com.sun.corba.se.pept.transport.Connection;
@@ -38,6 +37,7 @@ import com.sun.corba.se.spi.monitoring.MonitoringConstants;
 import com.sun.corba.se.spi.monitoring.MonitoringFactories;
 import com.sun.corba.se.spi.monitoring.MonitoredObject;
 import com.sun.corba.se.spi.orb.ORB;
+import com.sun.corba.se.spi.transport.CorbaAcceptor;
 
 import com.sun.corba.se.impl.orbutil.ORBUtility;
 
@@ -50,14 +50,19 @@ public class CorbaInboundConnectionCacheImpl
     implements
         InboundConnectionCache
 {
-    private List<Acceptor> acceptors;
-    private List<Connection> connections;
+    protected Collection connectionCache;
 
-    public CorbaInboundConnectionCacheImpl(ORB orb, String connectionCacheType, String monitoringName)
+    private Acceptor acceptor;
+
+    public CorbaInboundConnectionCacheImpl(ORB orb, Acceptor acceptor)
     {
-        super(orb, connectionCacheType, monitoringName);
-        this.acceptors = new ArrayList<>();
-        this.connections = new ArrayList<>();
+        super(orb, acceptor.getConnectionCacheType(),
+              ((CorbaAcceptor)acceptor).getMonitoringName());
+        this.connectionCache = new ArrayList();
+        this.acceptor = acceptor;
+        if (orb.transportDebugFlag) {
+            dprint(": " + acceptor );
+        }
     }
 
     ////////////////////////////////////////////////////
@@ -68,30 +73,29 @@ public class CorbaInboundConnectionCacheImpl
     public void close () {
 
         super.close();
-        for(Acceptor acceptor: acceptors) {
-            if (orb.transportDebugFlag) {
-                dprint(".close: " + acceptor);
-            }
-            acceptor.close();
+        if (orb.transportDebugFlag) {
+            dprint(".close: " + acceptor );
         }
+        this.acceptor.close();
 
     }
 
-    public void registerAcceptor(Acceptor acceptor){
-        acceptors.add(acceptor);
+    public Connection get(Acceptor acceptor)
+    {
+        throw wrapper.methodShouldNotBeCalled();
     }
 
-    public Collection<Acceptor> getAcceptors() {
-        return acceptors;
+    public Acceptor getAcceptor () {
+        return acceptor;
     }
 
-    public void add(Connection connection)
+    public void put(Acceptor acceptor, Connection connection)
     {
         if (orb.transportDebugFlag) {
-            dprint(".add: " + connection);
+            dprint(".put: " + acceptor + " " + connection);
         }
         synchronized (backingStore()) {
-            connections.add(connection);
+            connectionCache.add(connection);
             connection.setConnectionCache(this);
             dprintStatistics();
         }
@@ -103,7 +107,7 @@ public class CorbaInboundConnectionCacheImpl
             dprint(".remove: " +  connection);
         }
         synchronized (backingStore()) {
-            connections.remove(connection);
+            connectionCache.remove(connection);
             dprintStatistics();
         }
     }
@@ -115,12 +119,12 @@ public class CorbaInboundConnectionCacheImpl
 
     public Collection values()
     {
-        return connections;
+        return connectionCache;
     }
 
     protected Object backingStore()
     {
-        return connections;
+        return connectionCache;
     }
 
     protected void registerWithMonitoring()
