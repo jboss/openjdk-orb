@@ -140,7 +140,7 @@ public class PortableRemoteObject {
      * @throws ClassCastException if narrowFrom cannot be cast to narrowTo.
      */
     public static java.lang.Object narrow ( java.lang.Object narrowFrom,
-                                            java.lang.Class<?> narrowTo)
+                                            java.lang.Class narrowTo)
         throws ClassCastException {
 
         if (proDelegate != null) {
