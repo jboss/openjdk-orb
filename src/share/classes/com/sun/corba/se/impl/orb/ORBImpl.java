@@ -1733,16 +1733,35 @@ public class ORBImpl extends com.sun.corba.se.spi.orb.ORB
 
     private static String localHostString = null;
 
-    private synchronized String getLocalHostName()
-    {
+    private static boolean ignoreLocalhostResolveFailure;
+
+    static {
+        try {
+            ignoreLocalhostResolveFailure = Boolean.valueOf(System.getProperty("jboss.orb.ignore.localhost.resolve.failure"));
+        } catch (Throwable ignored) {
+            ignoreLocalhostResolveFailure = false;
+        }
+    }
+
+    private synchronized String getLocalHostName() {
         if (localHostString == null) {
             try {
                 localHostString = InetAddress.getLocalHost().getHostAddress();
-            } catch (Exception ex) {
-                throw wrapper.getLocalHostFailed( ex ) ;
+            } catch (Throwable ignored) {
+                if (localHostString == null) {
+                    try {
+                        localHostString = InetAddress.getByName(null).getHostAddress();
+                    } catch (Throwable e) {
+                        if (ignoreLocalhostResolveFailure) {
+                            localHostString = "127.0.0.1";
+                        } else {
+                            throw wrapper.getLocalHostFailed(e);
+                        }
+                    }
+                }
             }
         }
-        return localHostString ;
+        return localHostString;
     }
 
  /******************************************************************************
