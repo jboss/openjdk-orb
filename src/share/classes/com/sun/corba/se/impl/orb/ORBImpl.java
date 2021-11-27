@@ -1753,7 +1753,7 @@ public class ORBImpl extends com.sun.corba.se.spi.orb.ORB
                         localHostString = InetAddress.getByName(null).getHostAddress();
                     } catch (Throwable e) {
                         if (ignoreLocalhostResolveFailure) {
-                            localHostString = "127.0.0.1";
+                            localHostString =  InetAddress.getLoopbackAddress().getHostAddress();
                         } else {
                             throw wrapper.getLocalHostFailed(e);
                         }
