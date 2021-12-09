@@ -101,6 +101,35 @@
                             </target>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>transform-javadoc</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <property name="plugin_classpath" refid="maven.plugin.classpath"/>
+                                <ac:propertyregex xmlns:ac="antlib:net.sf.antcontrib" property="source"
+                                                  input="${org.jboss.openjdk-orb:openjdk-orb:jar}"
+                                                  regexp="\.jar$"
+                                                  replace="-javadoc.jar"
+                                                  global="true"/>
+                                <java classname="org.eclipse.transformer.jakarta.JakartaTransformer">
+                                    <arg value="${source}"/>
+                                    <arg value="${project.build.directory}/${project.build.finalName}-javadoc.jar"/>
+                                    <arg value="-q"/>
+                                    <arg value="-o"/>
+                                    <arg value="-tr"/>
+                                    <arg value="${project.basedir}/rules/jakarta-renames.properties"/>
+                                    <classpath>
+                                        <pathelement path="${plugin_classpath}"/>
+                                    </classpath>
+                                </java>
+                            </target>
+                        </configuration>
+                    </execution>
+
                 </executions>
                 <dependencies>
                     <dependency>
