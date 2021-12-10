@@ -9,7 +9,7 @@
 
     <groupId>org.jboss.openjdk-orb</groupId>
     <artifactId>openjdk-orb-parent</artifactId>
-    <version>8.1.9.Final-SNAPSHOT</version>
+    <version>8.1.9.Final</version>
     <packaging>pom</packaging>
 
     <name>OpenJDK ORB: Parent Aggregator</name>
