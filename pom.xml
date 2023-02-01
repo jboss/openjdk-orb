@@ -9,7 +9,7 @@
     </parent>
 
     <artifactId>openjdk-orb</artifactId>
-    <version>8.1.11.Final-SNAPSHOT</version>
+    <version>9.0.0.Final-SNAPSHOT</version>
     <packaging>jar</packaging>
     <description>JBoss repackaging of the OpenJDK ORB</description>
 
