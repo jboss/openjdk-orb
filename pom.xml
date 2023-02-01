@@ -35,15 +35,16 @@
         <source.code.dir>src/share/classes</source.code.dir>
         <generate.loggers.script>logutil/generate_loggers.sh</generate.loggers.script>
         <version.idl.plugin>1.2.2</version.idl.plugin>
+        <version.jakarta.transaction.jakarta-transaction-api>2.0.0</version.jakarta.transaction.jakarta-transaction-api>
         <!-- we only allow building on JDK8 otherwise build code doesn't run on jdk8-->
         <jdk.min.version>(,8]</jdk.min.version>
     </properties>
 
     <dependencies>
         <dependency>
-            <groupId>org.jboss.spec.javax.transaction</groupId>
-            <artifactId>jboss-transaction-api_1.2_spec</artifactId>
-            <version>1.0.0.Final</version>
+            <groupId>jakarta.transaction</groupId>
+            <artifactId>jakarta.transaction-api</artifactId>
+            <version>${version.jakarta.transaction.jakarta-transaction-api}</version>
         </dependency>
         <dependency>
             <groupId>org.jboss.openjdk-orb</groupId>

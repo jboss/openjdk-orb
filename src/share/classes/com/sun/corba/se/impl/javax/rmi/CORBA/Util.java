@@ -57,9 +57,9 @@ import java.rmi.ServerError;
 import java.rmi.ServerException;
 import java.rmi.ServerRuntimeException;
 
-import javax.transaction.TransactionRequiredException;
-import javax.transaction.TransactionRolledbackException;
-import javax.transaction.InvalidTransactionException;
+import jakarta.transaction.TransactionRequiredException;
+import jakarta.transaction.TransactionRolledbackException;
+import jakarta.transaction.InvalidTransactionException;
 
 import org.jboss.javax.rmi.RemoteObjectSubstitutionManager;
 import org.omg.CORBA.SystemException;
