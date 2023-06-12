@@ -97,7 +97,6 @@ import com.sun.corba.se.impl.logging.OMGSystemException ;
 
 import com.sun.corba.se.impl.presentation.rmi.PresentationManagerImpl ;
 
-import sun.awt.AppContext;
 import sun.corba.SharedSecrets;
 
 public abstract class ORB extends com.sun.corba.se.org.omg.CORBA.ORB
@@ -241,23 +240,6 @@ public abstract class ORB extends com.sun.corba.se.org.omg.CORBA.ORB
      */
     public static PresentationManager getPresentationManager()
     {
-        SecurityManager sm = System.getSecurityManager();
-        if (sm != null && AppContext.getAppContexts().size() > 0) {
-            AppContext ac = AppContext.getAppContext();
-            if (ac != null) {
-                synchronized (pmLock) {
-                    PresentationManager pm =
-                        (PresentationManager) ac.get(PresentationManager.class);
-                    if (pm == null) {
-                        pm = setupPresentationManager();
-                        ac.put(PresentationManager.class, pm);
-                    }
-                    return pm;
-                }
-            }
-        }
-
-        // No security manager or AppContext
         return Holder.defaultPresentationManager;
     }
 
