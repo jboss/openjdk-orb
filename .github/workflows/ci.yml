@@ -17,8 +17,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-#        jdk-distribution: [zulu, adopt-openj9]
-        jdk-version: [8.0_45-8.7.0.5]
+        jdk-distribution: [temurin]
+        jdk-version: [8]
     steps:
     - name: Configure runner - Linux
       if: contains(matrix.os, 'ubuntu')
