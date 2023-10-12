@@ -37,8 +37,8 @@
         <generate.loggers.script>logutil/generate_loggers.sh</generate.loggers.script>
         <version.idl.plugin>1.2.2</version.idl.plugin>
         <version.jakarta.transaction.jakarta-transaction-api>2.0.0</version.jakarta.transaction.jakarta-transaction-api>
-        <!-- we only allow building on JDK8 otherwise build code doesn't run on jdk8-->
-	<!--<jdk.min.version>(,8]</jdk.min.version>-->
+	<jdk.min.version>11</jdk.min.version>
+	<jdk.max.version>11</jdk.max.version>
     </properties>
 
     <dependencies>
