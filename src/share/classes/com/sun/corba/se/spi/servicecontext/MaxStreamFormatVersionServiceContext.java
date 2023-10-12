@@ -27,7 +27,6 @@
  */
 package com.sun.corba.se.spi.servicecontext;
 
-import org.omg.IOP.RMICustomMaxStreamFormat;
 import javax.rmi.CORBA.*;
 import org.omg.CORBA.SystemException;
 import org.omg.CORBA_2_3.portable.InputStream;
@@ -38,6 +37,8 @@ import com.sun.corba.se.impl.encoding.MarshalOutputStream;
 import com.sun.corba.se.impl.orbutil.ORBUtility;
 
 public class MaxStreamFormatVersionServiceContext extends ServiceContext {
+
+    private static int CUSTOM_MAX_STREAM_FORMAT_VALUE = 17;
 
     private byte maxStreamFormatVersion;
 
@@ -61,7 +62,7 @@ public class MaxStreamFormatVersionServiceContext extends ServiceContext {
         maxStreamFormatVersion = is.read_octet();
     }
 
-    public static final int SERVICE_CONTEXT_ID = RMICustomMaxStreamFormat.value;
+    public static final int SERVICE_CONTEXT_ID = CUSTOM_MAX_STREAM_FORMAT_VALUE;
     public int getId() { return SERVICE_CONTEXT_ID; }
 
     public void writeData(OutputStream os) throws SystemException

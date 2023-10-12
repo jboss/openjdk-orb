@@ -65,11 +65,11 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Set;
 
-import sun.misc.JavaSecurityAccess;
-import sun.misc.SharedSecrets;
 
 import com.sun.corba.se.impl.util.RepositoryId;
 
+import jdk.internal.misc.JavaSecurityAccess;
+import jdk.internal.misc.SharedSecrets;
 import org.omg.CORBA.ValueMember;
 
 import sun.corba.Bridge;
