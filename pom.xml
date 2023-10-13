@@ -38,7 +38,7 @@
         <version.idl.plugin>1.2.2</version.idl.plugin>
         <version.jakarta.transaction.jakarta-transaction-api>2.0.0</version.jakarta.transaction.jakarta-transaction-api>
         <!-- we only allow building on JDK8 otherwise build code doesn't run on jdk8-->
-        <jdk.min.version>(,8]</jdk.min.version>
+	<!--<jdk.min.version>(,8]</jdk.min.version>-->
     </properties>
 
     <dependencies>
@@ -81,17 +81,33 @@
                     <sourceDirectory>${source.code.dir}</sourceDirectory>
                     <sources>
                         <source>
-                            <excludes>
-                                <exclude>**/orb.idl</exclude>
-                                <exclude>**/corba.idl</exclude>
-                                <exclude>**/CORBAX.idl</exclude>
-                                <exclude>com/sun/tools/corba/**/*.idl</exclude>
-                            </excludes>
+                            <includes>
+                                <include>com/sun/corba/se/spi/activation/activation.idl</include>
+                                <include>org/jboss/iiop/csiv2/SASCurrent.idl</include>
+                                <include>org/omg/CORBA/ir.idl</include>
+                                <include>org/omg/CosNaming/nameservice.idl</include>
+                                <include>org/omg/CSI/CSI.idl</include>
+                                <include>org/omg/CSIIOP/CSIIOP.idl</include>
+                                <include>org/omg/DynamicAny/DynamicAny.idl</include>
+                                <include>org/omg/GSSUP/GSSUP.idl</include>
+                                <include>org/omg/IOP/IOP.idl</include>
+                                <include>org/omg/PortableInterceptor/Messaging.idl</include>
+                                <include>org/omg/PortableServer/poa.idl</include>
+                                <include>org/omg/PortableInterceptor/CORBAX.idl</include>
+                                <include>org/omg/PortableInterceptor/Interceptors.idl</include>
+                                <include>org/omg/Security/Security.idl</include>
+                                <include>org/omg/SSLIOP/SSLIOP.idl</include>
+                            </includes>
                             <emitStubs>true</emitStubs>
                             <emitSkeletons>true</emitSkeletons>
+                            <compatible>false</compatible>
                             <packagePrefixes>
                                 <packagePrefix>
                                     <type>CosNaming</type>
+                                    <prefix>org.omg</prefix>
+                                </packagePrefix>
+                                <packagePrefix>
+                                    <type>CORBA</type>
                                     <prefix>org.omg</prefix>
                                 </packagePrefix>
                                 <packagePrefix>
@@ -155,7 +171,6 @@
                                     <prefix>com.sun.corba.se.spi</prefix>
                                 </packagePrefix>
                             </packagePrefixes>
-                            <compatible>false</compatible>
                             <defines>
                                 <define>
                                     <symbol>CORBA3</symbol>
