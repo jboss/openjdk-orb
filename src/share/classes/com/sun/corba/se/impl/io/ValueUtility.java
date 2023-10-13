@@ -93,7 +93,7 @@ public class ValueUtility {
         null,       // tk_abstract_interface 32
     };
 
-    public static void initializeJavaCorbaAccess() {
+    static {
         sun.corba.SharedSecrets.setJavaCorbaAccess(new sun.corba.JavaCorbaAccess() {
             public ValueHandlerImpl newValueHandlerImpl() {
                 return ValueHandlerImpl.getInstance();

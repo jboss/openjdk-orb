@@ -31,27 +31,22 @@
 
 package com.sun.corba.se.impl.io;
 
-import java.security.AccessControlContext;
-import java.security.AccessController;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.lang.invoke.MethodHandle;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.DigestOutputStream;
-import java.security.PermissionCollection;
-import java.security.Permissions;
-import java.security.PrivilegedExceptionAction;
-import java.security.PrivilegedActionException;
+import java.security.AccessController;
 import java.security.PrivilegedAction;
-import java.security.ProtectionDomain;
 
 import java.lang.reflect.Modifier;
-import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.UndeclaredThrowableException;
 
 import java.io.IOException;
 import java.io.DataOutputStream;
@@ -62,20 +57,15 @@ import java.io.Serializable;
 
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.HashSet;
-import java.util.Set;
-
 
 import com.sun.corba.se.impl.util.RepositoryId;
 
-import jdk.internal.misc.JavaSecurityAccess;
-import jdk.internal.misc.SharedSecrets;
 import org.omg.CORBA.ValueMember;
 
 import sun.corba.Bridge;
 
 /**
- * A ObjectStreamClass describes a class that can be serialized to a stream
+ * An ObjectStreamClass describes a class that can be serialized to a stream
  * or a class that was serialized to a stream.  It contains the name
  * and the serialVersionUID of the class.
  * <br>
@@ -89,9 +79,6 @@ public class ObjectStreamClass implements java.io.Serializable {
     private static final boolean DEBUG_SVUID = false ;
 
     public static final long kDefaultUID = -1;
-
-    private static Object noArgsList[] = {};
-    private static Class<?> noTypesList[] = {};
 
     /** true if represents enum type */
     private boolean isEnum;
@@ -321,12 +308,37 @@ public class ObjectStreamClass implements java.io.Serializable {
         return null;
     }
 
+    public final boolean invokeWriteObject(Object obj, ObjectOutputStream ois) throws InvocationTargetException {
+        if (!hasWriteObject()) {
+            return false;
+        }
+        try {
+            writeObjectMethod.invoke(obj, ois);
+        } catch (Throwable t) {
+            throw new InvocationTargetException(t, "writeObject");
+        }
+        return true;
+    }
+
+    public final boolean invokeReadObject(Object obj, ObjectInputStream ois) throws InvocationTargetException {
+        if (hasReadObject()) {
+            try {
+                readObjectMethod.invoke(obj, ois);
+                return true;
+            } catch (Throwable t) {
+                throw new InvocationTargetException(t, "readObject");
+            }
+        } else {
+            return false;
+        }
+    }
+
     public Serializable writeReplace(Serializable value) {
         if (writeReplaceObjectMethod != null) {
             try {
-                return (Serializable) writeReplaceObjectMethod.invoke(value,noArgsList);
-            } catch(Throwable t) {
-                throw new RuntimeException(t);
+                return (Serializable) writeReplaceObjectMethod.invoke(value);
+            } catch (Throwable t) {
+                throw new InternalError("unexpected error", t);
             }
         }
         else return value;
@@ -335,9 +347,9 @@ public class ObjectStreamClass implements java.io.Serializable {
     public Object readResolve(Object value) {
         if (readResolveObjectMethod != null) {
             try {
-                return readResolveObjectMethod.invoke(value,noArgsList);
-            } catch(Throwable t) {
-                throw new RuntimeException(t);
+                return readResolveObjectMethod.invoke(value);
+            } catch (Throwable t) {
+                throw new InternalError("unexpected error", t);
             }
         }
         else return value;
@@ -392,31 +404,35 @@ public class ObjectStreamClass implements java.io.Serializable {
          */
     }
 
-    private static final class PersistentFieldsValue
+    static final class PersistentFieldsValue
             extends ClassValue<ObjectStreamField[]> {
         PersistentFieldsValue() { }
 
         protected ObjectStreamField[] computeValue(Class<?> type) {
             try {
+                bridge.ensureClassInitialized(type);
                 Field pf = type.getDeclaredField("serialPersistentFields");
                 int mods = pf.getModifiers();
                 if (Modifier.isPrivate(mods) && Modifier.isStatic(mods) &&
                         Modifier.isFinal(mods)) {
-                    pf.setAccessible(true);
+                    long offset = bridge.staticFieldOffset(pf);
+                    Object base = bridge.staticFieldBase(pf);
                     java.io.ObjectStreamField[] fields =
-                        (java.io.ObjectStreamField[])pf.get(type);
+                            (java.io.ObjectStreamField[]) bridge.getObject(base, offset);
                     return translateFields(fields);
                 }
-            } catch (NoSuchFieldException | IllegalAccessException |
+            } catch (NoSuchFieldException |
                     IllegalArgumentException | ClassCastException e) {
             }
             return null;
         }
 
-        private static ObjectStreamField[] translateFields(
-            java.io.ObjectStreamField[] fields) {
+        private static ObjectStreamField[] translateFields(java.io.ObjectStreamField[] fields) {
+            if (fields == null) {
+                return null;
+            }
             ObjectStreamField[] translation =
-                new ObjectStreamField[fields.length];
+                    new ObjectStreamField[fields.length];
             for (int i = 0; i < fields.length; i++) {
                 translation[i] = new ObjectStreamField(fields[i].getName(),
                         fields[i].getType());
@@ -427,65 +443,6 @@ public class ObjectStreamClass implements java.io.Serializable {
 
     private static final PersistentFieldsValue persistentFieldsValue =
         new PersistentFieldsValue();
-
-    /**
-     * Creates a PermissionDomain that grants no permission.
-     */
-    private ProtectionDomain noPermissionsDomain() {
-        PermissionCollection perms = new Permissions();
-        perms.setReadOnly();
-        return new ProtectionDomain(null, perms);
-    }
-
-    /**
-     * Aggregate the ProtectionDomains of all the classes that separate
-     * a concrete class {@code cl} from its ancestor's class declaring
-     * a constructor {@code cons}.
-     *
-     * If {@code cl} is defined by the boot loader, or the constructor
-     * {@code cons} is declared by {@code cl}, or if there is no security
-     * manager, then this method does nothing and {@code null} is returned.
-     *
-     * @param cons A constructor declared by {@code cl} or one of its
-     *             ancestors.
-     * @param cl A concrete class, which is either the class declaring
-     *           the constructor {@code cons}, or a serializable subclass
-     *           of that class.
-     * @return An array of ProtectionDomain representing the set of
-     *         ProtectionDomain that separate the concrete class {@code cl}
-     *         from its ancestor's declaring {@code cons}, or {@code null}.
-     */
-    private ProtectionDomain[] getProtectionDomains(Constructor<?> cons,
-                                                    Class<?> cl) {
-        ProtectionDomain[] domains = null;
-        if (cons != null && cl.getClassLoader() != null
-                && System.getSecurityManager() != null) {
-            Class<?> cls = cl;
-            Class<?> fnscl = cons.getDeclaringClass();
-            Set<ProtectionDomain> pds = null;
-            while (cls != fnscl) {
-                ProtectionDomain pd = cls.getProtectionDomain();
-                if (pd != null) {
-                    if (pds == null) pds = new HashSet<>();
-                    pds.add(pd);
-                }
-                cls = cls.getSuperclass();
-                if (cls == null) {
-                    // that's not supposed to happen
-                    // make a ProtectionDomain with no permission.
-                    // should we throw instead?
-                    if (pds == null) pds = new HashSet<>();
-                    else pds.clear();
-                    pds.add(noPermissionsDomain());
-                    break;
-                }
-            }
-            if (pds != null) {
-                domains = pds.toArray(new ProtectionDomain[0]);
-            }
-        }
-        return domains;
-    }
 
     /*
      * Initialize class descriptor.  This method is only invoked on class
@@ -519,13 +476,11 @@ public class ObjectStreamClass implements java.io.Serializable {
                  * If it is declared, use the declared serialPersistentFields.
                  * Otherwise, extract the fields from the class itself.
                  */
-                    fields = persistentFieldsValue.get(cl);
+                fields = persistentFieldsValue.get(cl);
 
                 if (fields == null) {
-                    /* Get all of the declared fields for this
-                     * Class. setAccessible on all fields so they
-                     * can be accessed later.  Create a temporary
-                     * ObjectStreamField array to hold each
+                    /* Get all of the declared fields for this Class.
+                     * Create a temporary ObjectStreamField array to hold each
                      * non-static, non-transient field. Then copy the
                      * temporary array into an array of the correct
                      * size once the number of fields is known.
@@ -540,7 +495,6 @@ public class ObjectStreamClass implements java.io.Serializable {
                         int modifiers = fld.getModifiers();
                         if (!Modifier.isStatic(modifiers) &&
                             !Modifier.isTransient(modifiers)) {
-                            fld.setAccessible(true) ;
                             tempFields[numFields++] = new ObjectStreamField(fld);
                         }
                     }
@@ -556,7 +510,6 @@ public class ObjectStreamClass implements java.io.Serializable {
                         try {
                             Field reflField = cl.getDeclaredField(fields[j].getName());
                             if (fields[j].getType() == reflField.getType()) {
-                                reflField.setAccessible(true);
                                 fields[j].setField(reflField);
                             }
                         } catch (NoSuchFieldException e) {
@@ -596,8 +549,9 @@ public class ObjectStreamClass implements java.io.Serializable {
                         int mods = f.getModifiers();
                         // SerialBug 5:  static final SUID should be read
                         if (Modifier.isStatic(mods) && Modifier.isFinal(mods) ) {
-                            f.setAccessible(true);
-                            suid = f.getLong(cl);
+                            long offset = bridge.staticFieldOffset(f);
+                            Object base = bridge.staticFieldBase(f);
+                            suid = bridge.getLong(base, offset);
                             // SerialBug 2: should be computed after writeObject
                             // actualSuid = computeStructuralUID(cl);
                         } else {
@@ -609,35 +563,21 @@ public class ObjectStreamClass implements java.io.Serializable {
                         suid = _computeSerialVersionUID(cl);
                         // SerialBug 2: should be computed after writeObject
                         // actualSuid = computeStructuralUID(cl);
-                    } catch (IllegalAccessException ex) {
-                        suid = _computeSerialVersionUID(cl);
                     }
                 }
 
-                writeReplaceObjectMethod = ObjectStreamClass.getInheritableMethod(cl,
-                    "writeReplace", noTypesList, Object.class);
+                writeReplaceObjectMethod = bridge.writeReplaceForSerialization(cl);
 
-                readResolveObjectMethod = ObjectStreamClass.getInheritableMethod(cl,
-                    "readResolve", noTypesList, Object.class);
-
-                domains = new ProtectionDomain[] {noPermissionsDomain()};
+                readResolveObjectMethod = bridge.readResolveForSerialization(cl);
 
                 if (externalizable)
                     cons = getExternalizableConstructor(cl) ;
                 else
                     cons = getSerializableConstructor(cl) ;
 
-                domains = getProtectionDomains(cons, cl);
-
                 if (serializable && !forProxyClass) {
-                    /* Look for the writeObject method
-                     * Set the accessible flag on it here. ObjectOutputStream
-                     * will call it as necessary.
-                     */
-                    writeObjectMethod = getPrivateMethod( cl, "writeObject",
-                        new Class<?>[] { java.io.ObjectOutputStream.class }, Void.TYPE ) ;
-                    readObjectMethod = getPrivateMethod( cl, "readObject",
-                        new Class<?>[] { java.io.ObjectInputStream.class }, Void.TYPE ) ;
+                    writeObjectMethod = bridge.writeObjectForSerialization(cl) ;
+                    readObjectMethod = bridge.readObjectForSerialization(cl);
                 }
                 return null;
             }
@@ -656,27 +596,6 @@ public class ObjectStreamClass implements java.io.Serializable {
         // This must be done last.
         initialized = true;
       }
-    }
-
-    /**
-     * Returns non-static private method with given signature defined by given
-     * class, or null if none found.  Access checks are disabled on the
-     * returned method (if any).
-     */
-    private static Method getPrivateMethod(Class<?> cl, String name,
-                                           Class<?>[] argTypes,
-                                           Class<?> returnType)
-    {
-        try {
-            Method meth = cl.getDeclaredMethod(name, argTypes);
-            meth.setAccessible(true);
-            int mods = meth.getModifiers();
-            return ((meth.getReturnType() == returnType) &&
-                    ((mods & Modifier.STATIC) == 0) &&
-                    ((mods & Modifier.PRIVATE) != 0)) ? meth : null;
-        } catch (NoSuchMethodException ex) {
-            return null;
-        }
     }
 
     // Specific to RMI-IIOP
@@ -861,9 +780,9 @@ public class ObjectStreamClass implements java.io.Serializable {
     /* Compare the base class names of streamName and localName.
      *
      * @return  Return true iff the base class name compare.
-     * @parameter streamName    Fully qualified class name.
-     * @parameter localName     Fully qualified class name.
-     * @parameter pkgSeparator  class names use either '.' or '/'.
+     * @param streamName    Fully qualified class name.
+     * @param localName     Fully qualified class name.
+     * @param pkgSeparator  class names use either '.' or '/'.
      *
      * Only compare base class name to allow package renaming.
      */
@@ -922,6 +841,22 @@ public class ObjectStreamClass implements java.io.Serializable {
     }
 
     /**
+     * Returns true if represented class is serializable or externalizable and
+     * defines a conformant writeReplace method.  Otherwise, returns false.
+     */
+    boolean hasWriteReplaceMethod() {
+        return (writeReplaceObjectMethod != null);
+    }
+
+    /**
+     * Returns true if represented class is serializable or externalizable and
+     * defines a conformant readResolve method.  Otherwise, returns false.
+     */
+    boolean hasReadResolveMethod() {
+        return (readResolveObjectMethod != null);
+    }
+
+    /**
      * Returns when or not this class should be custom
      * marshaled (use chunking).  This should happen if
      * it is Externalizable OR if it or
@@ -975,67 +910,27 @@ public class ObjectStreamClass implements java.io.Serializable {
         throws InstantiationException, InvocationTargetException,
                UnsupportedOperationException
     {
-        if (!initialized)
-            throw new InternalError("Unexpected call when not initialized");
         if (cons != null) {
             try {
-                if (domains == null || domains.length == 0) {
-                    return cons.newInstance();
-                } else {
-                    JavaSecurityAccess jsa = SharedSecrets.getJavaSecurityAccess();
-                    PrivilegedAction<?> pea = (PrivilegedAction<?>) new PrivilegedAction() {
-                        public Object run() {
-                            try {
-                                return cons.newInstance();
-                            } catch (InstantiationException
-                                     | InvocationTargetException
-                                     | IllegalAccessException x) {
-                                throw new UndeclaredThrowableException(x);
-                            }
-                        }
-                    }; // Can't use PrivilegedExceptionAction with jsa
-                    try {
-                        return jsa.doIntersectionPrivilege(pea,
-                                   AccessController.getContext(),
-                                   new AccessControlContext(domains));
-                    } catch (UndeclaredThrowableException x) {
-                        Throwable cause = x.getCause();
-                        if (cause instanceof InstantiationException)
-                            throw (InstantiationException) cause;
-                        if (cause instanceof InvocationTargetException)
-                            throw (InvocationTargetException) cause;
-                        if (cause instanceof IllegalAccessException)
-                            throw (IllegalAccessException) cause;
-                        // not supposed to happen
-                        throw x;
-                    }
-                }
+                return cons.newInstance();
             } catch (IllegalAccessException ex) {
                 // should not occur, as access checks have been suppressed
                 InternalError ie = new InternalError();
-                ie.initCause(ex);
-                throw ie;
+                ie.initCause( ex ) ;
+                throw ie ;
             }
         } else {
-            throw new UnsupportedOperationException();
+            throw new UnsupportedOperationException("no constructor for " + ofClass);
         }
     }
-
 
     /**
      * Returns public no-arg constructor of given class, or null if none found.
      * Access checks are disabled on the returned constructor (if any), since
      * the defining class may still be non-public.
      */
-    private static Constructor getExternalizableConstructor(Class<?> cl) {
-        try {
-            Constructor cons = cl.getDeclaredConstructor(new Class<?>[0]);
-            cons.setAccessible(true);
-            return ((cons.getModifiers() & Modifier.PUBLIC) != 0) ?
-                cons : null;
-        } catch (NoSuchMethodException ex) {
-            return null;
-        }
+    private static Constructor<?> getExternalizableConstructor(Class<?> cl) {
+        return bridge.newConstructorForExternalization(cl);
     }
 
     /**
@@ -1043,28 +938,8 @@ public class ObjectStreamClass implements java.io.Serializable {
      * superclass, or null if none found.  Access checks are disabled on the
      * returned constructor (if any).
      */
-    private static Constructor getSerializableConstructor(Class<?> cl) {
-        Class<?> initCl = cl;
-        while (Serializable.class.isAssignableFrom(initCl)) {
-            if ((initCl = initCl.getSuperclass()) == null) {
-                return null;
-            }
-        }
-        try {
-            Constructor cons = initCl.getDeclaredConstructor(new Class<?>[0]);
-            int mods = cons.getModifiers();
-            if ((mods & Modifier.PRIVATE) != 0 ||
-                ((mods & (Modifier.PUBLIC | Modifier.PROTECTED)) == 0 &&
-                 !packageEquals(cl, initCl)))
-            {
-                return null;
-            }
-            cons = bridge.newConstructorForSerialization(cl, cons);
-            cons.setAccessible(true);
-            return cons;
-        } catch (NoSuchMethodException ex) {
-            return null;
-        }
+    private static Constructor<?> getSerializableConstructor(Class<?> cl) {
+        return bridge.newConstructorForSerialization(cl);
     }
 
     /*
@@ -1628,12 +1503,11 @@ public class ObjectStreamClass implements java.io.Serializable {
      * @since JDK 1.2
      */
     private boolean hasExternalizableBlockData;
-    Method writeObjectMethod;
-    Method readObjectMethod;
-    private transient Method writeReplaceObjectMethod;
-    private transient Method readResolveObjectMethod;
-    private Constructor<?> cons;
-    private transient ProtectionDomain[] domains;
+    private transient MethodHandle writeObjectMethod;
+    private transient MethodHandle readObjectMethod;
+    private transient MethodHandle writeReplaceObjectMethod;
+    private transient MethodHandle readResolveObjectMethod;
+    private transient Constructor<?> cons;
 
     /**
      * Beginning in Java to IDL ptc/02-01-12, RMI-IIOP has a
@@ -1650,44 +1524,12 @@ public class ObjectStreamClass implements java.io.Serializable {
      */
     private ObjectStreamClass localClassDesc;
 
-    /* Find out if the class has a static class initializer <clinit> */
-    private static Method hasStaticInitializerMethod = null;
     /**
      * Returns true if the given class defines a static initializer method,
      * false otherwise.
      */
     private static boolean hasStaticInitializer(Class<?> cl) {
-        if (hasStaticInitializerMethod == null) {
-            Class<?> classWithThisMethod = null;
-
-            try {
-                if (classWithThisMethod == null)
-                    classWithThisMethod = java.io.ObjectStreamClass.class;
-
-                hasStaticInitializerMethod =
-                    classWithThisMethod.getDeclaredMethod("hasStaticInitializer",
-                                                          new Class<?>[] { Class.class });
-            } catch (NoSuchMethodException ex) {
-            }
-
-            if (hasStaticInitializerMethod == null) {
-                // XXX I18N, logging needed
-                throw new InternalError("Can't find hasStaticInitializer method on "
-                                        + classWithThisMethod.getName());
-            }
-            hasStaticInitializerMethod.setAccessible(true);
-        }
-
-        try {
-            Boolean retval = (Boolean)
-                hasStaticInitializerMethod.invoke(null, new Object[] { cl });
-            return retval.booleanValue();
-        } catch (Exception ex) {
-            // XXX I18N, logging needed
-            InternalError ie = new InternalError( "Error invoking hasStaticInitializer" ) ;
-            ie.initCause( ex ) ;
-            throw ie ;
-        }
+        return bridge.hasStaticInitializerForSerialization(cl);
     }
 
 
@@ -1861,7 +1703,6 @@ public class ObjectStreamClass implements java.io.Serializable {
         if ((meth == null) || (meth.getReturnType() != returnType)) {
             return null;
         }
-        meth.setAccessible(true);
         int mods = meth.getModifiers();
         if ((mods & (Modifier.STATIC | Modifier.ABSTRACT)) != 0) {
             return null;

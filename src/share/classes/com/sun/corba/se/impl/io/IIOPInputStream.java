@@ -31,22 +31,17 @@
 
 package com.sun.corba.se.impl.io;
 
-import java.io.InputStream;
 import java.io.IOException;
 import java.io.StreamCorruptedException;
 import java.io.ObjectInputValidation;
 import java.io.NotActiveException;
 import java.io.InvalidObjectException;
 import java.io.InvalidClassException;
-import java.io.DataInputStream;
 import java.io.OptionalDataException;
-import java.io.WriteAbortedException;
 import java.io.Externalizable;
 import java.io.EOFException;
 import java.lang.reflect.*;
 import java.util.Vector;
-import java.util.Stack;
-import java.util.Hashtable;
 import java.util.Enumeration;
 
 import sun.corba.Bridge ;
@@ -54,7 +49,6 @@ import sun.corba.Bridge ;
 import java.security.AccessController ;
 import java.security.PrivilegedAction ;
 
-import com.sun.corba.se.impl.io.ObjectStreamClass;
 import com.sun.corba.se.impl.util.Utility;
 
 import org.omg.CORBA.portable.ValueInputStream;
@@ -71,14 +65,12 @@ import org.omg.CORBA.TypeCode;
 import com.sun.org.omg.CORBA.ValueDefPackage.FullValueDescription;
 import com.sun.org.omg.SendingContext.CodeBase;
 
-import javax.rmi.PortableRemoteObject;
 import javax.rmi.CORBA.Util;
 import javax.rmi.CORBA.ValueHandler;
 
 import java.security.*;
 import java.util.*;
 
-import com.sun.corba.se.impl.orbutil.ObjectUtility ;
 import com.sun.corba.se.impl.logging.OMGSystemException ;
 import com.sun.corba.se.impl.logging.UtilSystemException ;
 
@@ -181,75 +173,6 @@ public class IIOPInputStream
     private static final boolean useFVDOnly = false;
 
     private byte streamFormatVersion;
-
-    // Since java.io.OptionalDataException's constructors are
-    // package private, but we need to throw it in some special
-    // cases, we try to do it by reflection.
-    private static final Constructor OPT_DATA_EXCEPTION_CTOR;
-
-    private Object[] readObjectArgList = { this } ;
-
-    static {
-        OPT_DATA_EXCEPTION_CTOR = getOptDataExceptionCtor();
-    }
-
-    // Grab the OptionalDataException boolean ctor and make
-    // it accessible.  Note that any exceptions
-    // will be wrapped in ExceptionInInitializerErrors.
-    private static Constructor getOptDataExceptionCtor() {
-
-        try {
-
-            Constructor result =
-
-                (Constructor) AccessController.doPrivileged(
-                                    new PrivilegedExceptionAction() {
-                    public java.lang.Object run()
-                        throws NoSuchMethodException,
-                        SecurityException {
-
-                        Constructor boolCtor
-                            = OptionalDataException.class.getDeclaredConstructor(
-                                                               new Class[] {
-                                Boolean.TYPE });
-
-                        boolCtor.setAccessible(true);
-
-                        return boolCtor;
-                    }});
-
-            if (result == null)
-                // XXX I18N, logging needed.
-                throw new Error("Unable to find OptionalDataException constructor");
-
-            return result;
-
-        } catch (Exception ex) {
-            // XXX I18N, logging needed.
-            throw new ExceptionInInitializerError(ex);
-        }
-    }
-
-    // Create a new OptionalDataException with the EOF marker
-    // set to true.  See handleOptionalDataMarshalException.
-    private OptionalDataException createOptionalDataException() {
-        try {
-            OptionalDataException result
-                = (OptionalDataException)
-                   OPT_DATA_EXCEPTION_CTOR.newInstance(new Object[] {
-                       Boolean.TRUE });
-
-            if (result == null)
-                // XXX I18N, logging needed.
-                throw new Error("Created null OptionalDataException");
-
-            return result;
-
-        } catch (Exception ex) {
-            // XXX I18N, logging needed.
-            throw new Error("Couldn't create OptionalDataException", ex);
-        }
-    }
 
     // Return the stream format version currently being used
     // to deserialize an object
@@ -395,7 +318,6 @@ public class IIOPInputStream
                                   int offset)
                                          /* throws OptionalDataException, ClassNotFoundException, IOException */
     {
-
         /* Save the current state and get ready to read an object. */
         Object prevObject = currentObject;
         ObjectStreamClass prevClassDesc = currentClassDesc;
@@ -947,7 +869,7 @@ public class IIOPInputStream
             if (!objectRead)
                 result = new EOFException("No more optional data");
             else
-                result = createOptionalDataException();
+                result = bridge.newOptionalDataExceptionForSerialization(true);
 
             result.initCause(marshalException);
 
@@ -1230,8 +1152,7 @@ public class IIOPInputStream
 
                                 readObjectState.beginUnmarshalCustomValue(this,
                                                                           calledDefaultWriteObject,
-                                                                          (currentClassDesc.readObjectMethod
-                                                                           != null));
+                                                                          currentClassDesc.hasReadObject());
                             } else {
                                 if (currentClassDesc.hasReadObject())
                                     setState(IN_READ_OBJECT_REMOTE_NOT_CUSTOM_MARSHALED);
@@ -1556,8 +1477,7 @@ public class IIOPInputStream
 
                                 readObjectState.beginUnmarshalCustomValue(this,
                                                                           calledDefaultWriteObject,
-                                                                          (currentClassDesc.readObjectMethod
-                                                                           != null));
+                                                                          currentClassDesc.hasReadObject());
                             }
 
                             boolean usedReadObject = false;
@@ -1714,13 +1634,8 @@ public class IIOPInputStream
         throws InvalidClassException, StreamCorruptedException,
                ClassNotFoundException, IOException
     {
-        if (osc.readObjectMethod == null) {
-            return false;
-        }
-
         try {
-            osc.readObjectMethod.invoke( obj, readObjectArgList ) ;
-            return true;
+            return osc.invokeReadObject( obj, this ) ;
         } catch (InvocationTargetException e) {
             Throwable t = e.getTargetException();
             if (t instanceof ClassNotFoundException)
@@ -1734,8 +1649,6 @@ public class IIOPInputStream
             else
                 // XXX I18N, logging needed.
                 throw new Error("internal error");
-        } catch (IllegalAccessException e) {
-            return false;
         }
     }
 
@@ -2230,7 +2143,7 @@ public class IIOPInputStream
      * REVISIT -- This code doesn't do what the comment says to when
      * getField() is null!
      */
-    private void inputClassFields(Object o, final Class<?> cl,
+    private void inputClassFields(Object o, Class<?> cl,
                                   ObjectStreamField[] fields,
                                   com.sun.org.omg.SendingContext.CodeBase sender)
         throws InvalidClassException, StreamCorruptedException,
@@ -2239,6 +2152,8 @@ public class IIOPInputStream
 
         int primFields = fields.length - currentClassDesc.objFields;
 
+        // this will leave primitives in the inputstream
+        // should really consume and discard where necessary
         if (o != null) {
             for (int i = 0; i < primFields; ++i) {
                 inputPrimitiveField(o, cl, fields[i]);
@@ -2279,7 +2194,7 @@ public class IIOPInputStream
                             (NoSuchFieldException) paEx.getException());
                     } catch (SecurityException secEx) {
                         throw new IllegalArgumentException(secEx);
-                    }  catch (NullPointerException npEx) {
+                    } catch (NullPointerException npEx) {
                         continue;
                     } catch (NoSuchFieldException e) {
                         continue;
@@ -2288,6 +2203,7 @@ public class IIOPInputStream
                     if (declaredClassField == null) {
                         continue;
                     }
+
                     Class<?> declaredFieldClass = declaredClassField.getType();
 
                     // check input field type is a declared field type
@@ -2611,7 +2527,6 @@ public class IIOPInputStream
                 throw cce ;
             }
         }
-
     }
 
     private static void setObjectField(Object o, Class<?> c, String fieldName, Object v) {
@@ -2728,7 +2643,7 @@ public class IIOPInputStream
         }
     }
 
-    private static void setIntField(Object o, final Class<?> c, final String fieldName, int v)
+    private static void setIntField(Object o, Class<?> c, String fieldName, int v)
     {
         try {
             Field fld = getDeclaredField( c, fieldName ) ;
@@ -2800,7 +2715,7 @@ public class IIOPInputStream
     private static void setDoubleField(Object o, Class<?> c, String fieldName, double v)
     {
         try {
-            Field fld = getDeclaredField(c, fieldName ) ;
+            Field fld = getDeclaredField( c, fieldName ) ;
             if ((fld != null) && (fld.getType() == Double.TYPE)) {
                 long key = bridge.objectFieldOffset( fld ) ;
                 bridge.putDouble( o, key, v ) ;
@@ -2822,18 +2737,17 @@ public class IIOPInputStream
 
 
     private static Field getDeclaredField(final Class<?> c,
-                                           final String fieldName)
+                                            final String fieldName)
         throws PrivilegedActionException, NoSuchFieldException, SecurityException {
         if (System.getSecurityManager() == null) {
             return c.getDeclaredField(fieldName);
         } else {
             return AccessController
-                .doPrivileged(new PrivilegedExceptionAction<Field>() {
-                    public Field run()
-                            throws NoSuchFieldException {
-                        return c.getDeclaredField(fieldName);
-                    }
-                });
+                    .doPrivileged(new PrivilegedExceptionAction<Field>() {
+                        public Field run() throws NoSuchFieldException {
+                            return c.getDeclaredField(fieldName);
+                        }
+                    });
         }
     }
 
