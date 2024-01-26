@@ -147,7 +147,7 @@ public class Arguments
                     noWarn = true;
                 } else if (lcArg.equals ("trace")) {
                     // Allow tracing.
-                    Runtime.getRuntime ().traceMethodCalls (true);
+                    // Runtime.getRuntime ().traceMethodCalls (true); // This method does nothing since JDK9 and it was removed in JDK13
                 }
                 // <f46082.51> Remove -stateful feature.
                 //else if (lcArg.equals ("stateful"))
