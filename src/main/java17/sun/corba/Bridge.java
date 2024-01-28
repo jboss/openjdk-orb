@@ -27,6 +27,7 @@ package sun.corba ;
 
 import java.io.OptionalDataException;
 import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field ;
 import java.lang.reflect.Constructor ;
 import java.lang.StackWalker;
@@ -320,7 +321,11 @@ public final class Bridge
      * @param cl the class to ensure is initialized
      */
     public final void ensureClassInitialized(Class<?> cl) {
-        unsafe.ensureClassInitialized(cl); // This method was deprecated in JDK15 and removed in JDK22 so it must be overriden by MR version of this class.
+        try {
+            MethodHandles.lookup().in(cl).ensureInitialized(cl);
+        } catch (IllegalAccessException ignored) {
+            //  Class is accessible to this lookup
+        }
     }
 
 
