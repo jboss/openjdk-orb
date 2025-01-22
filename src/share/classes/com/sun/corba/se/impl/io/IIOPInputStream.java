@@ -940,7 +940,14 @@ public class IIOPInputStream
              *  Handle it as a serializable class.
              */
             if (Enum.class.isAssignableFrom( clz )) {
-                int ordinal = orbStream.read_long() ;
+                /**
+                 * Fields of java.lang.enum.class have changed (hash field has been added)
+                 * in JDK21 leading to IIOP stream parsing errors (see WFLY-20283).
+                 */
+                if (Enum.class.getDeclaredFields().length >= 3) {
+                    int hash = orbStream.read_long();
+                }
+                int ordinal = orbStream.read_long();
                 String value = (String)orbStream.read_value( String.class ) ;
                 return Enum.valueOf( clz, value ) ;
             } else if (currentClassDesc.isExternalizable()) {
