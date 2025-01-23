@@ -10,7 +10,7 @@
 
     <groupId>org.jboss.openjdk-orb</groupId>
     <artifactId>openjdk-orb</artifactId>
-    <version>10.1.1.Final-SNAPSHOT</version>
+    <version>10.1.2.Final-SNAPSHOT</version>
     <packaging>jar</packaging>
     <description>JBoss repackaging of the OpenJDK ORB</description>
 
