@@ -422,7 +422,7 @@ public class ObjectStreamClass implements java.io.Serializable {
                     return translateFields(fields);
                 }
             } catch (NoSuchFieldException |
-                    IllegalArgumentException | ClassCastException e) {
+                    IllegalArgumentException | ClassCastException | IllegalAccessException e) {
             }
             return null;
         }

@@ -170,16 +170,6 @@ public class CorbaUtils {
             orbProp.put("org.omg.CORBA.ORBInitialPort", ""+port);
         }
 
-        // Get Applet from environment
-        if (env != null) {
-            @SuppressWarnings("deprecation")
-            Applet applet = (Applet) env.get(Context.APPLET);
-            if (applet != null) {
-            // Create ORBs using applet and orbProp
-                return ORB.init(applet, orbProp);
-            }
-        }
-
         return ORB.init(new String[0], orbProp);
     }
 
