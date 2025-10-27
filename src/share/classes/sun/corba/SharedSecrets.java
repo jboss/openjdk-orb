@@ -25,7 +25,9 @@
 
 package sun.corba;
 
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
+import java.net.MalformedURLException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 
@@ -43,6 +45,8 @@ import sun.misc.Unsafe;
 
 // SharedSecrets cloned in corba repo to avoid build issues
 public class SharedSecrets {
+
+    private static MethodHandles.Lookup lookup = MethodHandles.lookup();
 
     /** Access to Unsafe to read/write fields. */
     private static final Unsafe unsafe = AccessController.doPrivileged(
@@ -64,7 +68,11 @@ public class SharedSecrets {
         if (javaCorbaAccess == null) {
             // Ensure ValueUtility is initialized; we know that that class
             // provides the shared secret
-            unsafe.ensureClassInitialized(ValueUtility.class); // This method was deprecated in JDK15 and removed in JDK22 so it must be overriden by MR version of this class.
+            try {
+                lookup.ensureInitialized(ValueUtility.class);
+            } catch (IllegalAccessException ignored) {
+                // this can't happen according to method specification
+            }
         }
         return javaCorbaAccess;
     }
