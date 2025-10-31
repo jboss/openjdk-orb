@@ -39,6 +39,9 @@
         <version.jakarta.transaction.jakarta-transaction-api>2.0.1</version.jakarta.transaction.jakarta-transaction-api>
         <jdk.min.version>17</jdk.min.version>
         <maven.compiler.release>25</maven.compiler.release>
+
+        <nexus.repository.staging>wildfly-staging</nexus.repository.staging>
+        <nexus.staging.tag>openjdk-orb-${project.version}</nexus.staging.tag>
     </properties>
 
     <dependencies>
