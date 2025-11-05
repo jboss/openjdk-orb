@@ -199,6 +199,7 @@
                         <SOURCE_DIR>${basedir}/${source.code.dir}</SOURCE_DIR>
                         <TARGET_DIR>${project.build.directory}</TARGET_DIR>
                     </environmentVariables>
+                    <useMavenLogger>true</useMavenLogger>
                 </configuration>
             </plugin>
             <plugin>
