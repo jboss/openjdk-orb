@@ -1,8 +1,8 @@
+echo "script runs"
+
 set JAVA=%JAVA_HOME%\..\bin\java
 set JAVAC=%JAVA_HOME%\..\bin\javac
 set JAR=%JAVA_HOME%\..\bin\jar
-
-echo "script runs"
 
 set LOGUTIL_PACKAGE=com\sun\tools\corba\se\logutil
 set LOGUTIL_SRC_DIR=%SOURCE_DIR%\%LOGUTIL_PACKAGE%
