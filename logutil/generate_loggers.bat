@@ -4,8 +4,6 @@ set JAVA=%JAVA_HOME%\..\bin\java
 set JAVAC=%JAVA_HOME%\..\bin\javac
 set JAR=%JAVA_HOME%\..\bin\jar
 
-echo source dir %SOURCE_DIR%
-
 set LOGUTIL_PACKAGE=com\sun\tools\corba\se\logutil
 set LOGUTIL_SRC_DIR=%SOURCE_DIR%\%LOGUTIL_PACKAGE%
 set LOGUTIL_TARGET=%TARGET_DIR%\logutil
@@ -15,9 +13,12 @@ set MC_DIR=%SOURCE_DIR%\com\sun\corba\se\spi\logging\data
 md %LOGUTIL_TARGET%\classes
 JAVAC -d %LOGUTIL_TARGET%\classes %LOGUTIL_SRC_DIR%\*.java
 
-echo "check"
-dir %LOGUTIL_PACKAGE%
-echo "\npo checku"
+echo "check " + %BASE_DIR%\logutil\manifest
+pwd %BASE_DIR%\logutil
+echo "check 2 "+ %LOGUTIL_TARGET%\classes
+pwd %LOGUTIL_TARGET%\classes
+echo "check 3" + %LOGUTIL_PACKAGE%
+echo %LOGUTIL_PACKAGE%
 
 %JAR% cmf %BASE_DIR%\logutil\manifest %LOGUTIL_TARGET%\logutil.jar -C %LOGUTIL_TARGET%\classes %LOGUTIL_PACKAGE%
 
