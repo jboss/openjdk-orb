@@ -15,6 +15,7 @@ JAVAC -d %LOGUTIL_TARGET%\classes %LOGUTIL_SRC_DIR%\*.java
 
 echo "check"
 dir %LOGUTIL_PACKAGE%
+echo "po checku"
 
 %JAR% cmf %BASE_DIR%\logutil\manifest %LOGUTIL_TARGET%\logutil.jar -C %LOGUTIL_TARGET%\classes %LOGUTIL_PACKAGE%
 
