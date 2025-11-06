@@ -33,8 +33,8 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <source.code.dir>src${path.separator}share${path.separator}classes</source.code.dir>
-        <generate.loggers.script>logutil${path.separator}generate_loggers.sh</generate.loggers.script>
+        <source.code.dir>src${file.separator}share${file.separator}classes</source.code.dir>
+        <generate.loggers.script>logutil/generate_loggers.sh</generate.loggers.script>
         <version.idl.plugin>1.2.2</version.idl.plugin>
         <version.jakarta.transaction.jakarta-transaction-api>2.0.1</version.jakarta.transaction.jakarta-transaction-api>
         <jdk.min.version>17</jdk.min.version>
@@ -196,7 +196,7 @@
                     <environmentVariables>
                         <JAVA_HOME>${java.home}</JAVA_HOME>
                         <BASE_DIR>${basedir}</BASE_DIR>
-                        <SOURCE_DIR>${basedir}${path.separator}${source.code.dir}</SOURCE_DIR>
+                        <SOURCE_DIR>${basedir}${file.separator}${source.code.dir}</SOURCE_DIR>
                         <TARGET_DIR>${project.build.directory}</TARGET_DIR>
                     </environmentVariables>
                     <useMavenLogger>true</useMavenLogger>
