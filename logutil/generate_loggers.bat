@@ -20,7 +20,7 @@ dir %LOGUTIL_TARGET%\classes
 echo "check 3" + %LOGUTIL_PACKAGE%
 dir %LOGUTIL_TARGET%\classes\%LOGUTIL_PACKAGE%
 
-%JAR% cmf %BASE_DIR%\logutil\manifest %LOGUTIL_TARGET%\logutil.jar -C %LOGUTIL_TARGET%\classes %LOGUTIL_PACKAGE%
+%JAR% cmf %BASE_DIR%\logutil\manifest %LOGUTIL_TARGET%\logutil.jar %LOGUTIL_TARGET%\classes\%LOGUTIL_PACKAGE%
 
 mkdir %GENERATED_CLASS_DIR%
 setlocal enableDelayedExpansion
