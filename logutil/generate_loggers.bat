@@ -18,7 +18,7 @@ dir %BASE_DIR%\logutil
 echo "check 2 "+ %LOGUTIL_TARGET%\classes
 dir %LOGUTIL_TARGET%\classes
 echo "check 3" + %LOGUTIL_PACKAGE%
-dir %LOGUTIL_PACKAGE%
+dir %LOGUTIL_TARGET%\classes\%LOGUTIL_PACKAGE%
 
 %JAR% cmf %BASE_DIR%\logutil\manifest %LOGUTIL_TARGET%\logutil.jar -C %LOGUTIL_TARGET%\classes %LOGUTIL_PACKAGE%
 
