@@ -12,6 +12,10 @@ set MC_DIR=%SOURCE_DIR%\com\sun\corba\se\spi\logging\data
 
 md %LOGUTIL_TARGET%\classes
 JAVAC -d %LOGUTIL_TARGET%\classes %LOGUTIL_SRC_DIR%\*.java
+
+echo "check"
+dir %LOGUTIL_TARGET%
+
 %JAR% cmf %BASE_DIR%\logutil\manifest %LOGUTIL_TARGET%\logutil.jar -C %LOGUTIL_TARGET%\classes %LOGUTIL_PACKAGE%
 
 mkdir %GENERATED_CLASS_DIR%
