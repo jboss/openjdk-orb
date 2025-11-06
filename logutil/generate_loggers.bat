@@ -14,11 +14,11 @@ md %LOGUTIL_TARGET%\classes
 JAVAC -d %LOGUTIL_TARGET%\classes %LOGUTIL_SRC_DIR%\*.java
 
 echo "check " + %BASE_DIR%\logutil\manifest
-pwd %BASE_DIR%\logutil
+dir %BASE_DIR%\logutil
 echo "check 2 "+ %LOGUTIL_TARGET%\classes
-pwd %LOGUTIL_TARGET%\classes
+dir %LOGUTIL_TARGET%\classes
 echo "check 3" + %LOGUTIL_PACKAGE%
-echo %LOGUTIL_PACKAGE%
+dir %LOGUTIL_PACKAGE%
 
 %JAR% cmf %BASE_DIR%\logutil\manifest %LOGUTIL_TARGET%\logutil.jar -C %LOGUTIL_TARGET%\classes %LOGUTIL_PACKAGE%
 
