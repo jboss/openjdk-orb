@@ -20,6 +20,9 @@ dir %LOGUTIL_TARGET%\classes
 echo "check 3" + %LOGUTIL_PACKAGE%
 dir %LOGUTIL_TARGET%\classes\%LOGUTIL_PACKAGE%
 
+echo "check 4"
+dir %JAVA_HOME%
+
 %JAR% cmf %BASE_DIR%\logutil\manifest %LOGUTIL_TARGET%\logutil.jar %LOGUTIL_TARGET%\classes\%LOGUTIL_PACKAGE%
 
 mkdir %GENERATED_CLASS_DIR%
