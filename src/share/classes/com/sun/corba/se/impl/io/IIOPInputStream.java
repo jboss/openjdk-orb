@@ -101,6 +101,9 @@ public class IIOPInputStream
     private static UtilSystemException utilWrapper = UtilSystemException.get(
         CORBALogDomains.RPC_ENCODING ) ;
 
+    // Deserialization filter
+    private static final FilterSpecClassResolverFilter deserializationFilter = new FilterSpecClassResolverFilter();
+
     // Necessary to pass the appropriate fields into the
     // defaultReadObjectDelegate method (which takes no
     // parameters since it's called from
@@ -319,6 +322,11 @@ public class IIOPInputStream
                                          /* throws OptionalDataException, ClassNotFoundException, IOException */
     {
         /* Save the current state and get ready to read an object. */
+        // Apply deserialization filter
+        if (!deserializationFilter.apply(clz.getName())) {
+            throw new RuntimeException("Deserialization of class " + clz.getName() + " rejected by filter");
+        }
+
         Object prevObject = currentObject;
         ObjectStreamClass prevClassDesc = currentClassDesc;
         Class prevClass = currentClass;
